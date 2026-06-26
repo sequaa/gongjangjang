@@ -1,0 +1,10 @@
+{
+  "name": "gongjangjang-bench",
+  "private": true,
+  "type": "module",
+  "description": "Naive-baseline load harness. mqtt.js/ws fallback for xk6-mqtt (see README). Measures backend-persist throughput (slope of row count under sustained load) and single-process end-to-end latency, as two separate runs.",
+  "dependencies": {
+    "mqtt": "5.15.1",
+    "ws": "8.18.0"
+  }
+}

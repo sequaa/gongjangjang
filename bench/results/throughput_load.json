@@ -1,0 +1,12 @@
+{
+  "kind": "throughput-load",
+  "mqttUrl": "mqtt://localhost:1883",
+  "durationMs": 60000,
+  "concurrency": 24,
+  "maxInflight": 1000,
+  "topic": "sensors/bench",
+  "publishesAttempted": 13311848,
+  "publishesAcked": 13311848,
+  "publishErrors": 0,
+  "publishAttemptRatePerSec": 221864
+}
