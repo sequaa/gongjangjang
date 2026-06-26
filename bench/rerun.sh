@@ -67,7 +67,7 @@ for i in $(seq 1 30); do
 done
 [[ $SENTINEL_OK -eq 1 ]] || { echo "ERROR: MQTT subscriber never confirmed" >&2; exit 1; }
 
-echo "==> [5/6] THROUGHPUT run (${DURATION_MS}ms sustained load, concurrency=${CONCURRENCY})"
+echo "==> [5/7] THROUGHPUT run (${DURATION_MS}ms sustained load, concurrency=${CONCURRENCY})"
 psql_q "TRUNCATE sensor_readings;" >/dev/null   # zero baseline for the slope
 SERIES="$RESULTS/throughput_series.csv"
 : > "$SERIES"
@@ -82,12 +82,22 @@ wait "$SAMPLER_PID"
 CSV="$SERIES" LOAD_JSON="$RESULTS/throughput_load.json" OUT="$RESULTS/throughput_summary.json" \
   node "$BENCH_DIR/analyze-throughput.mjs"
 
-echo "==> [6/6] LATENCY run (${PROBES} sequential probes)"
-# re-confirm subscriber still live before the second measurement
+echo "==> [6/7] UNLOADED LATENCY run (${PROBES} sequential probes, idle system)"
+# re-confirm subscriber still live before the measurement
 DEVICE_ID=ready-sentinel MQTT_URL=mqtt://localhost:1883 node "$BENCH_DIR/publish-one.mjs" || true
 MQTT_URL=mqtt://localhost:1883 WS_URL=ws://localhost:18080/ws/sensors PROBES="$PROBES" \
   node "$BENCH_DIR/latency.mjs" | tee "$RESULTS/latency.txt" >/dev/null
 tail -n 12 "$RESULTS/latency.txt"
+
+echo "==> [7/7] KNEE sweep (adaptive ramp: persisted/latency/drop vs offered load)"
+# Deterministic ramp that auto-stops when the naive backend breaks the SLO
+# (p99>=500ms or drop>=1%). Measures loaded latency + the load-vs-throughput
+# curve the single-point runs above cannot show.
+COMPOSE="$COMPOSE" ENVFILE="$ENVFILE" PGUSER="$PGUSER" PGDB="$PGDB" \
+  BENCH_DIR="$BENCH_DIR" RESULTS="$RESULTS" \
+  MQTT_URL=mqtt://localhost:1883 WS_URL=ws://localhost:18080/ws/sensors \
+  R0="${R0:-500}" FACTOR="${FACTOR:-1.6}" WINDOW_MS="${WINDOW_MS:-15000}" \
+  node "$BENCH_DIR/knee.mjs"
 
 echo
 echo "==> DONE. Raw + derived results in bench/results/"

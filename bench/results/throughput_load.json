@@ -5,8 +5,8 @@
   "concurrency": 24,
   "maxInflight": 1000,
   "topic": "sensors/bench",
-  "publishesAttempted": 13311848,
-  "publishesAcked": 13311848,
+  "publishesAttempted": 14642774,
+  "publishesAcked": 14642774,
   "publishErrors": 0,
-  "publishAttemptRatePerSec": 221864
+  "publishAttemptRatePerSec": 244046
 }

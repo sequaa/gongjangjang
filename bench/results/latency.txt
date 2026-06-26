@@ -1,53 +1,53 @@
-probe seq=1 publishedAtMs=1782444839012 latencyMs=5
-probe seq=2 publishedAtMs=1782444839218 latencyMs=4
-probe seq=3 publishedAtMs=1782444839424 latencyMs=5
-probe seq=4 publishedAtMs=1782444839630 latencyMs=5
-probe seq=5 publishedAtMs=1782444839836 latencyMs=4
-probe seq=6 publishedAtMs=1782444840042 latencyMs=5
-probe seq=7 publishedAtMs=1782444840248 latencyMs=5
-probe seq=8 publishedAtMs=1782444840454 latencyMs=5
-probe seq=9 publishedAtMs=1782444840660 latencyMs=5
-probe seq=10 publishedAtMs=1782444840867 latencyMs=5
-probe seq=11 publishedAtMs=1782444841074 latencyMs=5
-probe seq=12 publishedAtMs=1782444841279 latencyMs=5
-probe seq=13 publishedAtMs=1782444841486 latencyMs=5
-probe seq=14 publishedAtMs=1782444841692 latencyMs=2
-probe seq=15 publishedAtMs=1782444841895 latencyMs=4
-probe seq=16 publishedAtMs=1782444842101 latencyMs=5
-probe seq=17 publishedAtMs=1782444842308 latencyMs=5
-probe seq=18 publishedAtMs=1782444842514 latencyMs=5
-probe seq=19 publishedAtMs=1782444842720 latencyMs=5
-probe seq=20 publishedAtMs=1782444842926 latencyMs=2
-probe seq=21 publishedAtMs=1782444843130 latencyMs=4
-probe seq=22 publishedAtMs=1782444843335 latencyMs=6
-probe seq=23 publishedAtMs=1782444843541 latencyMs=5
-probe seq=24 publishedAtMs=1782444843747 latencyMs=5
-probe seq=25 publishedAtMs=1782444843953 latencyMs=6
-probe seq=26 publishedAtMs=1782444844160 latencyMs=5
-probe seq=27 publishedAtMs=1782444844367 latencyMs=5
-probe seq=28 publishedAtMs=1782444844573 latencyMs=4
-probe seq=29 publishedAtMs=1782444844778 latencyMs=6
-probe seq=30 publishedAtMs=1782444844986 latencyMs=5
-probe seq=31 publishedAtMs=1782444845192 latencyMs=6
-probe seq=32 publishedAtMs=1782444845400 latencyMs=5
-probe seq=33 publishedAtMs=1782444845606 latencyMs=3
-probe seq=34 publishedAtMs=1782444845811 latencyMs=5
-probe seq=35 publishedAtMs=1782444846017 latencyMs=6
-probe seq=36 publishedAtMs=1782444846224 latencyMs=5
-probe seq=37 publishedAtMs=1782444846430 latencyMs=6
-probe seq=38 publishedAtMs=1782444846636 latencyMs=3
-probe seq=39 publishedAtMs=1782444846840 latencyMs=4
-probe seq=40 publishedAtMs=1782444847045 latencyMs=3
-probe seq=41 publishedAtMs=1782444847249 latencyMs=5
-probe seq=42 publishedAtMs=1782444847456 latencyMs=5
-probe seq=43 publishedAtMs=1782444847662 latencyMs=4
-probe seq=44 publishedAtMs=1782444847867 latencyMs=5
-probe seq=45 publishedAtMs=1782444848073 latencyMs=5
-probe seq=46 publishedAtMs=1782444848279 latencyMs=5
-probe seq=47 publishedAtMs=1782444848486 latencyMs=4
-probe seq=48 publishedAtMs=1782444848691 latencyMs=5
-probe seq=49 publishedAtMs=1782444848897 latencyMs=6
-probe seq=50 publishedAtMs=1782444849104 latencyMs=5
+probe seq=1 publishedAtMs=1782481443329 latencyMs=5
+probe seq=2 publishedAtMs=1782481443535 latencyMs=4
+probe seq=3 publishedAtMs=1782481443740 latencyMs=5
+probe seq=4 publishedAtMs=1782481443947 latencyMs=5
+probe seq=5 publishedAtMs=1782481444154 latencyMs=5
+probe seq=6 publishedAtMs=1782481444361 latencyMs=4
+probe seq=7 publishedAtMs=1782481444566 latencyMs=4
+probe seq=8 publishedAtMs=1782481444771 latencyMs=4
+probe seq=9 publishedAtMs=1782481444976 latencyMs=5
+probe seq=10 publishedAtMs=1782481445181 latencyMs=4
+probe seq=11 publishedAtMs=1782481445386 latencyMs=7
+probe seq=12 publishedAtMs=1782481445594 latencyMs=5
+probe seq=13 publishedAtMs=1782481445800 latencyMs=4
+probe seq=14 publishedAtMs=1782481446004 latencyMs=6
+probe seq=15 publishedAtMs=1782481446211 latencyMs=4
+probe seq=16 publishedAtMs=1782481446416 latencyMs=7
+probe seq=17 publishedAtMs=1782481446624 latencyMs=5
+probe seq=18 publishedAtMs=1782481446830 latencyMs=4
+probe seq=19 publishedAtMs=1782481447035 latencyMs=5
+probe seq=20 publishedAtMs=1782481447241 latencyMs=4
+probe seq=21 publishedAtMs=1782481447446 latencyMs=3
+probe seq=22 publishedAtMs=1782481447650 latencyMs=3
+probe seq=23 publishedAtMs=1782481447855 latencyMs=3
+probe seq=24 publishedAtMs=1782481448059 latencyMs=5
+probe seq=25 publishedAtMs=1782481448265 latencyMs=3
+probe seq=26 publishedAtMs=1782481448469 latencyMs=7
+probe seq=27 publishedAtMs=1782481448678 latencyMs=4
+probe seq=28 publishedAtMs=1782481448883 latencyMs=4
+probe seq=29 publishedAtMs=1782481449088 latencyMs=3
+probe seq=30 publishedAtMs=1782481449292 latencyMs=2
+probe seq=31 publishedAtMs=1782481449495 latencyMs=3
+probe seq=32 publishedAtMs=1782481449699 latencyMs=4
+probe seq=33 publishedAtMs=1782481449904 latencyMs=3
+probe seq=34 publishedAtMs=1782481450108 latencyMs=3
+probe seq=35 publishedAtMs=1782481450312 latencyMs=3
+probe seq=36 publishedAtMs=1782481450516 latencyMs=5
+probe seq=37 publishedAtMs=1782481450721 latencyMs=3
+probe seq=38 publishedAtMs=1782481450924 latencyMs=3
+probe seq=39 publishedAtMs=1782481451128 latencyMs=4
+probe seq=40 publishedAtMs=1782481451333 latencyMs=3
+probe seq=41 publishedAtMs=1782481451537 latencyMs=4
+probe seq=42 publishedAtMs=1782481451742 latencyMs=3
+probe seq=43 publishedAtMs=1782481451946 latencyMs=4
+probe seq=44 publishedAtMs=1782481452151 latencyMs=5
+probe seq=45 publishedAtMs=1782481452356 latencyMs=4
+probe seq=46 publishedAtMs=1782481452561 latencyMs=5
+probe seq=47 publishedAtMs=1782481452767 latencyMs=4
+probe seq=48 publishedAtMs=1782481452973 latencyMs=5
+probe seq=49 publishedAtMs=1782481453179 latencyMs=3
+probe seq=50 publishedAtMs=1782481453383 latencyMs=4
 SUMMARY {
   "kind": "e2e-latency",
   "mqttUrl": "mqtt://localhost:1883",
@@ -58,10 +58,10 @@ SUMMARY {
   "probesTimedOut": 0,
   "gapMs": 200,
   "min": 2,
-  "mean": 4.74,
-  "p50": 5,
-  "p90": 6,
-  "p95": 6,
-  "p99": 6,
-  "max": 6
+  "mean": 4.16,
+  "p50": 4,
+  "p90": 5,
+  "p95": 7,
+  "p99": 7,
+  "max": 7
 }

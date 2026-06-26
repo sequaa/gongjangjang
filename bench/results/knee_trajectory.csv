@@ -1,0 +1,10 @@
+target_rate,achieved_rate,persisted_rows_per_sec,drop_pct,lat_p50_ms,lat_p99_ms,probes_ok,probes_timeout,latency_valid,verdict,break_reason
+500,483,483,0,1,25,75,0,true,healthy,
+800,773,773,0,1,11,75,0,true,healthy,
+1280,1236,1236,0,1,12,75,0,true,healthy,
+2048,1978,1978,0,1,17,75,0,true,healthy,
+3277,3165,3165,0,9,52,75,0,true,healthy,
+5243,5066,5066,0,11,50,75,0,true,healthy,
+8389,8104,5984,26.2,147,217,75,0,true,broken,drop
+13422,12965,5824,55.1,4,214,74,1,true,broken,drop
+21475,20743,5790,72.1,4,179,73,2,true,broken,drop

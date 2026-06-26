@@ -78,6 +78,37 @@ Throughput and latency are **never measured in the same run** (RESEARCH pitfall
 #1): WebSocket-subscribe load competing with the INSERT hot path would
 contaminate both numbers.
 
+### 3. Knee sweep = the load-vs-(throughput, latency, drop) curve
+
+The two runs above are single points (max-flood throughput; idle latency). The
+**knee sweep** (`knee.mjs` + `load.mjs`) steps the **offered** load up and, at
+each step, records all three curves together: persisted rows/s, end-to-end
+latency under load (p50/p99), and broker drop%. This is where the **loaded**
+latency lives — the naive backend only slows down under load (single Paho thread
+does INSERT+broadcast inline), so an idle 6ms says nothing about the
+before→after story; the knee curve does.
+
+- **Levels are not pre-guessed.** A deterministic ramp (`R0 x FACTOR^n`) climbs
+  until the system breaks an SLO — **p99 ≥ 500ms OR drop ≥ 1%** (the project's
+  own latency target / the onset of loss) — then runs `STEPS_AFTER_BREAK` more
+  steps past it. The number of levels and where it stops are measurement-driven;
+  the offered-rate *sequence* is deterministic, so every run reproduces the same
+  x-axis (a bisect/adaptive search would not — and Phase 2 needs naive vs
+  optimized compared at *matching* loads).
+- **Integrity guards:** load and probe run as **separate processes** (the
+  firehose never sits on the probe's event loop); between steps the broker
+  backlog is **quiesced** (wait until `count(*)` stops growing) before truncating
+  so a step's count isn't polluted by the previous step's drain; the **achieved**
+  offered rate (acked/s) is recorded, not just the target; and if a step's probe
+  timeout rate is high, its p99 is biased low and marked `latency_valid=false`
+  (drop% is the authority there).
+- **The knee** = the highest offered load still meeting the SLO. Phase 2's job is
+  to push that knee outward (batching/COPY/index, and possibly moving the
+  INSERT+broadcast off the single Paho thread).
+
+Output: `results/knee_trajectory.csv` (raw per-step curve) and
+`results/knee_summary.json` (knee rate, saturation throughput, break reason).
+
 ## Load tool: mqtt.js fallback (not xk6-mqtt)
 
 The plan's primary tool was **k6 + xk6-mqtt**. The custom k6 binary
@@ -98,13 +129,26 @@ remains fully reproducible from the tag with no Go toolchain.
 | `sample-count.mjs` | Samples `count(*)` → `results/throughput_series.csv` (raw). |
 | `analyze-throughput.mjs` | Slope + drop% → `results/throughput_summary.json` (derived). |
 | `latency.mjs` | Single-process e2e latency probes → `results/latency.txt`. |
+| `load.mjs` | Rate-paced publisher for the knee sweep (target msg/s for a window). |
+| `knee.mjs` | Adaptive ramp controller → `results/knee_trajectory.csv` + `knee_summary.json`. |
 | `publish-one.mjs` | One-shot publish; used as the subscriber-readiness sentinel. |
 | `rerun.sh` | One-command orchestration of everything above. |
 | `results/` | Committed raw + derived output (the frozen naive numbers). |
 
 ## Results
 
-See `results/` (committed). `throughput_series.csv` is the raw series;
-`throughput_summary.json` and `latency.txt` carry the headline numbers. These
-are the **naive baseline** — Phase 2 re-runs this same harness to produce the
-`after` and the delta.
+See `results/` (committed). `throughput_series.csv` / `knee_trajectory.csv` are
+the raw series; `throughput_summary.json`, `latency.txt`, and `knee_summary.json`
+carry the headline numbers. These are the **naive baseline** — Phase 2 re-runs
+this same harness to produce the `after` and the delta.
+
+**Headline (one representative run):** persist throughput ~3.8k rows/s; knee at
+~5k msg/s offered (1:1, zero loss); saturation ceiling ~6k rows/s; latency is
+*not* the bottleneck — idle p50 4ms, and even at ~70× over-offer loaded p99 stays
+≤220ms (the broker sheds load via drop instead of degrading latency). The naive
+weakness is the persist ceiling + loss past the knee, which Phase 2 targets.
+
+> **Run-to-run variance ≈15–20%** (postgres checkpoint/WAL timing) — these are a
+> single representative run, not a fixed constant. The `before→after` delta is
+> always measured in the **same session** against a freshly-run baseline, never
+> against the frozen number, so variance never enters the comparison.
