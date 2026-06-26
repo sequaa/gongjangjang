@@ -1,0 +1,18 @@
+{
+  "name": "gongjangjang-simulator",
+  "private": true,
+  "type": "module",
+  "description": "Synthetic sensor signal generator publishing to MQTT (PIPE-01).",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "mqtt": "5.15.1",
+    "tsx": "4.20.3"
+  },
+  "devDependencies": {
+    "typescript": "5.7.3",
+    "vitest": "3.2.4"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "gongjangjang-e2e",
+  "private": true,
+  "type": "module",
+  "description": "End-to-end skeleton test: drives the running stack directly (publish MQTT, subscribe WS).",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "mqtt": "5.15.1",
+    "ws": "8.18.0",
+    "vitest": "3.2.4"
+  }
+}

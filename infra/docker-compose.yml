@@ -1,0 +1,79 @@
+# Walking-skeleton full stack (Phase 1, plan 01-01).
+# One command: `docker compose -f infra/docker-compose.yml --env-file .env up --build`
+# Topology: simulator -> mosquitto -> backend (naive INSERT) -> postgres
+#                                          \-> WebSocket -> frontend (browser)
+# Ports 1883 (MQTT) and 8080 (backend WS) are exposed to the host so the e2e
+# harness can drive the stack directly (publish MQTT, subscribe WS).
+name: gongjangjang
+
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+    volumes:
+      # Paths in this file resolve relative to infra/ (the compose file's dir).
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    healthcheck:
+      # mosquitto_sub exits 0 once the broker accepts a connection
+      test: ["CMD-SHELL", "mosquitto_sub -t '$$SYS/#' -C 1 -W 2 -i healthcheck || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ../backend
+    restart: unless-stopped
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      MQTT_BROKER_URL: tcp://mosquitto:1883
+    ports:
+      # Host 18080 -> container 8080 (host 8080 may be taken by other projects).
+      - "18080:8080"
+    depends_on:
+      mosquitto:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
+  simulator:
+    build:
+      context: ../simulator
+    restart: unless-stopped
+    environment:
+      MQTT_BROKER_URL: mqtt://mosquitto:1883
+      DEVICE_COUNT: "5"
+      METRIC: temperature
+      PUBLISH_INTERVAL_MS: "1000"
+      ANOMALY_DEVICES: "1"
+    depends_on:
+      mosquitto:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ../frontend
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend

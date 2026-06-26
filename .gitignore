@@ -8,3 +8,11 @@ AGENTS.md
 # IDE
 .idea/
 .vscode/
+.planning/
+.claude/docs/
+
+# Build artifacts
+node_modules/
+dist/
+target/
+
