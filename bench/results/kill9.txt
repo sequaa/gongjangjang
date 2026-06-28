@@ -1,0 +1,26 @@
+kill-9 restart loss measurement
+generated : 2026-06-28T12:55:09Z
+rate      : 2000 msg/s
+kill_after: 4s
+duration  : 15000ms
+isolation : device_id='bench'  (no simulator; simulator rows never counted)
+kill_target: backend only  (mosquitto and postgres never killed)
+restart   : force-recreate (fresh container fs; avoids stale Paho persistence)
+
+--- BATCH (after / optimized path) ---
+mode      : batch
+design    : QoS1 + cleanSession=false + manual ack-after-commit (D-01)
+published : 29988
+persisted : 29988
+delta     : 0
+verdict   : ZERO_LOSS
+expected  : ZERO_LOSS (persisted >= published; over-count via re-delivery is OK)
+
+--- NAIVE (before / baseline path) ---
+mode      : naive
+design    : QoS1 + cleanSession=true + auto-ack (session purged on disconnect)
+published : 29964
+persisted : 24694
+delta     : -5270
+verdict   : LOSS
+expected  : LOSS (persisted < published)
