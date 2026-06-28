@@ -1,0 +1,78 @@
+{
+    "metrics": {
+        "iterations": {
+            "count": 20,
+            "rate": 0.1333317209083885
+        },
+        "ws_session_duration": {
+            "avg": 90044.70697920001,
+            "min": 90044.190375,
+            "med": 90044.731604,
+            "max": 90045.295,
+            "p(90)": 90045.138533,
+            "p(95)": 90045.15554759999
+        },
+        "data_sent": {
+            "count": 8080,
+            "rate": 53.86601524698895
+        },
+        "data_received": {
+            "count": 409159543,
+            "rate": 2727697.299713989
+        },
+        "iteration_duration": {
+            "max": 90046.001792,
+            "p(90)": 90045.8644333,
+            "p(95)": 90045.91989344999,
+            "avg": 90045.20347510002,
+            "min": 90044.458583,
+            "med": 90045.33652099999
+        },
+        "ws_sessions": {
+            "count": 40,
+            "rate": 0.266663441816777
+        },
+        "vus_max": {
+            "min": 20,
+            "max": 20,
+            "value": 20
+        },
+        "checks": {
+            "passes": 20,
+            "fails": 0,
+            "value": 1
+        },
+        "ws_connecting": {
+            "min": 5.906875,
+            "med": 25.081874999999997,
+            "max": 44.722791,
+            "p(90)": 44.3048919,
+            "p(95)": 44.4398973,
+            "avg": 25.05647285000001
+        },
+        "ws_msgs_received": {
+            "count": 2863007,
+            "rate": 19086.48251413813
+        },
+        "vus": {
+            "min": 20,
+            "max": 20,
+            "value": 20
+        }
+    },
+    "root_group": {
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {},
+        "checks": {
+                "WS connected (101)": {
+                    "path": "::WS connected (101)",
+                    "id": "0c603a4abcad8aa992085347f3f509b8",
+                    "passes": 20,
+                    "fails": 0,
+                    "name": "WS connected (101)"
+                }
+            },
+        "name": ""
+    }
+}
