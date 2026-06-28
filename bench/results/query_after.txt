@@ -1,0 +1,381 @@
+╔══════════════════════════════════════════════════════════════════════╗
+║  query_after.txt — OPTIMIZED STATE                                   ║
+║  sensor_readings_part + idx_sr_device_time + idx_sr_brin_time        ║
+╚══════════════════════════════════════════════════════════════════════╝
+Generated: 2026-06-28T13:29:28Z
+Row counts: sensor_readings_part=5000000
+Methodology: 3 runs per query, run1 discarded (cold), warm=min(run2,run3)
+JIT: OFF (SET jit=off applied symmetrically to all measured queries)
+
+════════════════════════════════════════
+  Active indexes (idx_sr_device_time propagates to per-partition child indexes)
+  Plan nodes show child names; parent idx_sr_device_time listed here confirms
+  the optimization is active.
+════════════════════════════════════════
+                       indexname                        |          tablename           
+--------------------------------------------------------+------------------------------
+ sensor_readings_2025_01_device_id_recorded_at_idx      | sensor_readings_2025_01
+ sensor_readings_2025_01_pkey                           | sensor_readings_2025_01
+ sensor_readings_2025_01_recorded_at_idx                | sensor_readings_2025_01
+ sensor_readings_2025_02_device_id_recorded_at_idx      | sensor_readings_2025_02
+ sensor_readings_2025_02_pkey                           | sensor_readings_2025_02
+ sensor_readings_2025_02_recorded_at_idx                | sensor_readings_2025_02
+ sensor_readings_2025_03_device_id_recorded_at_idx      | sensor_readings_2025_03
+ sensor_readings_2025_03_pkey                           | sensor_readings_2025_03
+ sensor_readings_2025_03_recorded_at_idx                | sensor_readings_2025_03
+ sensor_readings_2025_04_device_id_recorded_at_idx      | sensor_readings_2025_04
+ sensor_readings_2025_04_pkey                           | sensor_readings_2025_04
+ sensor_readings_2025_04_recorded_at_idx                | sensor_readings_2025_04
+ sensor_readings_2025_05_device_id_recorded_at_idx      | sensor_readings_2025_05
+ sensor_readings_2025_05_pkey                           | sensor_readings_2025_05
+ sensor_readings_2025_05_recorded_at_idx                | sensor_readings_2025_05
+ sensor_readings_2025_06_device_id_recorded_at_idx      | sensor_readings_2025_06
+ sensor_readings_2025_06_pkey                           | sensor_readings_2025_06
+ sensor_readings_2025_06_recorded_at_idx                | sensor_readings_2025_06
+ sensor_readings_2025_07_device_id_recorded_at_idx      | sensor_readings_2025_07
+ sensor_readings_2025_07_pkey                           | sensor_readings_2025_07
+ sensor_readings_2025_07_recorded_at_idx                | sensor_readings_2025_07
+ sensor_readings_flat_pkey                              | sensor_readings_flat
+ idx_sr_brin_time                                       | sensor_readings_part
+ idx_sr_device_time                                     | sensor_readings_part
+ sensor_readings_part_pkey                              | sensor_readings_part
+ sensor_readings_part_default_device_id_recorded_at_idx | sensor_readings_part_default
+ sensor_readings_part_default_pkey                      | sensor_readings_part_default
+ sensor_readings_part_default_recorded_at_idx           | sensor_readings_part_default
+(28 rows)
+
+════════════════════════════════════════
+  PATTERN 1: Time-range scan (part + idx_sr_device_time)
+  WHERE device_id='device-1' AND recorded_at BETWEEN 2025-02-01 AND 2025-03-01
+  Expected: partition pruning + Index Scan via sensor_readings_2025_02_device_id_recorded_at_idx
+════════════════════════════════════════
+SET
+                                                                                                     QUERY PLAN                                                                                                     
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Append  (cost=2595.02..12707.93 rows=79577 width=37) (actual time=4.210..19.155 rows=80641 loops=1)
+   Buffers: shared hit=8718
+   ->  Bitmap Heap Scan on sensor_readings_2025_02 sensor_readings_part_1  (cost=2595.02..12301.60 rows=79576 width=37) (actual time=4.210..16.218 rows=80640 loops=1)
+         Recheck Cond: (((device_id)::text = 'device-1'::text) AND (recorded_at >= '2025-02-01 00:00:00+00'::timestamp with time zone) AND (recorded_at <= '2025-03-01 00:00:00+00'::timestamp with time zone))
+         Heap Blocks: exact=8314
+         Buffers: shared hit=8714
+         ->  Bitmap Index Scan on sensor_readings_2025_02_device_id_recorded_at_idx  (cost=0.00..2575.13 rows=79576 width=0) (actual time=3.583..3.583 rows=80640 loops=1)
+               Index Cond: (((device_id)::text = 'device-1'::text) AND (recorded_at >= '2025-02-01 00:00:00+00'::timestamp with time zone) AND (recorded_at <= '2025-03-01 00:00:00+00'::timestamp with time zone))
+               Buffers: shared hit=400
+   ->  Index Scan using sensor_readings_2025_03_device_id_recorded_at_idx on sensor_readings_2025_03 sensor_readings_part_2  (cost=0.42..8.45 rows=1 width=37) (actual time=0.015..0.015 rows=1 loops=1)
+         Index Cond: (((device_id)::text = 'device-1'::text) AND (recorded_at >= '2025-02-01 00:00:00+00'::timestamp with time zone) AND (recorded_at <= '2025-03-01 00:00:00+00'::timestamp with time zone))
+         Buffers: shared hit=4
+ Planning:
+   Buffers: shared hit=352
+ Planning Time: 0.341 ms
+ Execution Time: 20.702 ms
+(16 rows)
+  [warm-run] run1=discard run2=20.702ms run3=21.137ms → reported=20.702ms (min of warm runs)
+
+════════════════════════════════════════
+  PATTERN 2: Device latest value (part + idx_sr_device_time)
+  DISTINCT ON (device_id) ORDER BY device_id, recorded_at DESC
+  Expected: Merge Append of 8 partition index scans (faster than sort-spill)
+════════════════════════════════════════
+SET
+                                                                                                          QUERY PLAN                                                                                                           
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Unique  (cost=2.92..492014.25 rows=10 width=37) (actual time=0.119..1525.503 rows=10 loops=1)
+   Buffers: shared hit=50 read=540109 written=536
+   ->  Merge Append  (cost=2.92..479514.25 rows=5000002 width=37) (actual time=0.118..1368.106 rows=5000000 loops=1)
+         Sort Key: sensor_readings_part.device_id, sensor_readings_part.recorded_at DESC
+         Buffers: shared hit=50 read=540109 written=536
+         ->  Index Scan using sensor_readings_2025_01_device_id_recorded_at_idx on sensor_readings_2025_01 sensor_readings_part_1  (cost=0.42..67764.17 rows=892799 width=37) (actual time=0.018..199.356 rows=892799 loops=1)
+               Buffers: shared hit=8 read=96443 written=88
+         ->  Index Scan using sensor_readings_2025_02_device_id_recorded_at_idx on sensor_readings_2025_02 sensor_readings_part_2  (cost=0.42..61209.51 rows=806400 width=37) (actual time=0.020..170.995 rows=806400 loops=1)
+               Buffers: shared hit=10 read=87105 written=88
+         ->  Index Scan using sensor_readings_2025_03_device_id_recorded_at_idx on sensor_readings_2025_03 sensor_readings_part_3  (cost=0.42..67753.44 rows=892800 width=37) (actual time=0.020..187.758 rows=892800 loops=1)
+               Buffers: shared hit=6 read=96445 written=88
+         ->  Index Scan using sensor_readings_2025_04_device_id_recorded_at_idx on sensor_readings_2025_04 sensor_readings_part_4  (cost=0.42..65590.04 rows=864000 width=37) (actual time=0.019..176.827 rows=864000 loops=1)
+               Buffers: shared hit=8 read=93331 written=113
+         ->  Index Scan using sensor_readings_2025_05_device_id_recorded_at_idx on sensor_readings_2025_05 sensor_readings_part_5  (cost=0.42..67757.51 rows=892800 width=37) (actual time=0.014..194.917 rows=892800 loops=1)
+               Buffers: shared hit=7 read=96444 written=102
+         ->  Index Scan using sensor_readings_2025_06_device_id_recorded_at_idx on sensor_readings_2025_06 sensor_readings_part_6  (cost=0.42..49423.14 rows=651201 width=37) (actual time=0.019..141.072 rows=651201 loops=1)
+               Buffers: shared hit=9 read=70341 written=57
+         ->  Index Scan using sensor_readings_2025_07_device_id_recorded_at_idx on sensor_readings_2025_07 sensor_readings_part_7  (cost=0.12..8.14 rows=1 width=244) (actual time=0.005..0.005 rows=0 loops=1)
+               Buffers: shared hit=1
+         ->  Index Scan using sensor_readings_part_default_device_id_recorded_at_idx on sensor_readings_part_default sensor_readings_part_8  (cost=0.12..8.14 rows=1 width=244) (actual time=0.001..0.001 rows=0 loops=1)
+               Buffers: shared hit=1
+ Planning:
+   Buffers: shared hit=654 read=56
+ Planning Time: 0.933 ms
+ Execution Time: 1525.614 ms
+(25 rows)
+  [warm-run] run1=discard run2=1525.614ms run3=1548.637ms → reported=1525.614ms (min of warm runs)
+
+════════════════════════════════════════
+  PATTERN 3: Aggregation / downsample (part + idx_sr_brin_time)
+  date_trunc(hour) + avg/min/max WHERE recorded_at Jan-Apr 2025
+  Expected: partition pruning to 3 partitions (Jan/Feb/Mar)
+════════════════════════════════════════
+SET
+                                                                                          QUERY PLAN                                                                                           
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Finalize GroupAggregate  (cost=186066.12..530894.43 rows=2591480 width=41) (actual time=368.151..623.127 rows=21600 loops=1)
+   Group Key: (date_trunc('hour'::text, sensor_readings_part.recorded_at)), sensor_readings_part.device_id
+   Buffers: shared hit=15556 read=11258, temp read=26674 written=26723
+   ->  Gather Merge  (cost=186066.12..465027.65 rows=2159566 width=65) (actual time=368.148..618.971 rows=22350 loops=1)
+         Workers Planned: 2
+         Workers Launched: 2
+         Buffers: shared hit=15556 read=11258, temp read=26674 written=26723
+         ->  Partial GroupAggregate  (cost=185066.09..214760.13 rows=1079783 width=65) (actual time=361.323..449.723 rows=7450 loops=3)
+               Group Key: (date_trunc('hour'::text, sensor_readings_part.recorded_at)), sensor_readings_part.device_id
+               Buffers: shared hit=15556 read=11258, temp read=26674 written=26723
+               ->  Sort  (cost=185066.09..187765.55 rows=1079783 width=25) (actual time=361.306..398.603 rows=864000 loops=3)
+                     Sort Key: (date_trunc('hour'::text, sensor_readings_part.recorded_at)), sensor_readings_part.device_id
+                     Sort Method: external merge  Disk: 35296kB
+                     Buffers: shared hit=15556 read=11258, temp read=26674 written=26723
+                     Worker 0:  Sort Method: external merge  Disk: 34184kB
+                     Worker 1:  Sort Method: external merge  Disk: 37360kB
+                     ->  Parallel Append  (cost=0.00..51022.37 rows=1079783 width=25) (actual time=0.010..124.902 rows=864000 loops=3)
+                           Buffers: shared hit=15466 read=11258
+                           ->  Parallel Seq Scan on sensor_readings_2025_03 sensor_readings_part_3  (cost=0.00..15714.81 rows=371925 width=25) (actual time=0.016..33.954 rows=297600 loops=3)
+                                 Filter: ((recorded_at >= '2025-01-01 00:00:00+00'::timestamp with time zone) AND (recorded_at < '2025-04-01 00:00:00+00'::timestamp with time zone))
+                                 Buffers: shared hit=96 read=9109
+                           ->  Parallel Seq Scan on sensor_readings_2025_01 sensor_readings_part_1  (cost=0.00..15714.81 rows=371925 width=25) (actual time=0.003..45.061 rows=446400 loops=2)
+                                 Filter: ((recorded_at >= '2025-01-01 00:00:00+00'::timestamp with time zone) AND (recorded_at < '2025-04-01 00:00:00+00'::timestamp with time zone))
+                                 Buffers: shared hit=9205
+                           ->  Parallel Seq Scan on sensor_readings_2025_02 sensor_readings_part_2  (cost=0.00..14193.83 rows=335933 width=25) (actual time=0.011..88.016 rows=806400 loops=1)
+                                 Filter: ((recorded_at >= '2025-01-01 00:00:00+00'::timestamp with time zone) AND (recorded_at < '2025-04-01 00:00:00+00'::timestamp with time zone))
+                                 Buffers: shared hit=6165 read=2149
+ Planning:
+   Buffers: shared hit=429
+ Planning Time: 0.389 ms
+ Execution Time: 624.825 ms
+(31 rows)
+  [warm-run] run1=discard run2=624.825ms run3=630.296ms → reported=624.825ms (min of warm runs)
+
+╔══════════════════════════════════════════════════════════════════════╗
+║  HEADLINE: TRUE NAIVE → OPTIMIZED (warm exec times)                  ║
+║  before = flat, no secondary index  |  after = part + idx_*          ║
+╚══════════════════════════════════════════════════════════════════════╝
+
+  P1 time-range   : before=69.757ms (Seq Scan) → after=20.702ms → 3.4x
+  P2 device-latest: before=4121.566ms (Seq Scan+Sort) → after=1525.614ms → 2.7x
+  P3 aggregation  : before=455.927ms (Seq Scan) → after=624.825ms → 0.7x  [REVERSAL — after slower than before]
+
+  NOTE P3 reversal (reported honestly — not massaged):
+  Flat Seq Scan of 5M rows (no index, single table) runs faster than the partitioned
+  approach at this data size. Cause: each of the 3 pruned partitions (~860k rows) is
+  small enough that parallel workers are fragmented across the Append; a flat 5M-row
+  parallel Seq Scan amortizes worker overhead better. The BRIN index on part is not
+  used by the planner (per-partition BRIN over ~860k rows → planner prefers seq scan).
+  Verdict: neither index nor partitioning wins P3 over the naive flat Seq Scan at 5M
+  rows. This would invert at larger scale where BRIN / partition pruning eliminates
+  more I/O. Lever attribution section shows the full breakdown.
+
+════════════════════════════════════════════════════════════════════════
+  [LEVER ATTRIBUTION Part 1 — INDEX TOGGLE]
+  sensor_readings_part, NO secondary indexes (partition constant)
+  Purpose: isolates index contribution (partitioning effect held constant)
+════════════════════════════════════════════════════════════════════════
+
+  ── Part 1a: sensor_readings_part, PK-only (no secondary indexes) ──
+  P1 (part, no secondary index):
+SET
+                                                                                                   QUERY PLAN                                                                                                   
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Gather  (cost=1000.00..39032.49 rows=79577 width=37) (actual time=0.138..31.572 rows=80641 loops=1)
+   Workers Planned: 2
+   Workers Launched: 2
+   Buffers: shared hit=384 read=17135
+   ->  Parallel Append  (cost=0.00..30074.79 rows=33158 width=37) (actual time=0.017..29.164 rows=26880 loops=3)
+         Buffers: shared hit=384 read=17135
+         ->  Parallel Seq Scan on sensor_readings_2025_03 sensor_readings_part_2  (cost=0.00..15715.00 rows=1 width=37) (actual time=2.498..12.958 rows=0 loops=3)
+               Filter: ((recorded_at >= '2025-02-01 00:00:00+00'::timestamp with time zone) AND (recorded_at <= '2025-03-01 00:00:00+00'::timestamp with time zone) AND ((device_id)::text = 'device-1'::text))
+               Rows Removed by Filter: 297600
+               Buffers: shared hit=224 read=8981
+         ->  Parallel Seq Scan on sensor_readings_2025_02 sensor_readings_part_1  (cost=0.00..14194.00 rows=33157 width=37) (actual time=0.017..22.777 rows=40320 loops=2)
+               Filter: ((recorded_at >= '2025-02-01 00:00:00+00'::timestamp with time zone) AND (recorded_at <= '2025-03-01 00:00:00+00'::timestamp with time zone) AND ((device_id)::text = 'device-1'::text))
+               Rows Removed by Filter: 362880
+               Buffers: shared hit=160 read=8154
+ Planning:
+   Buffers: shared hit=253
+ Planning Time: 0.278 ms
+ Execution Time: 33.291 ms
+(18 rows)
+  [warm-run] run1=discard run2=33.630ms run3=33.291ms → reported=33.291ms (min of warm runs)
+
+  P2 (part, no secondary index):
+SET
+                                                                                QUERY PLAN                                                                                
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Unique  (cost=956329.66..981329.67 rows=10 width=37) (actual time=3812.677..4362.603 rows=10 loops=1)
+   Buffers: shared hit=1222 read=50335, temp read=61170 written=61279
+   ->  Sort  (cost=956329.66..968829.67 rows=5000002 width=37) (actual time=3812.676..4197.797 rows=5000000 loops=1)
+         Sort Key: sensor_readings_part.device_id, sensor_readings_part.recorded_at DESC
+         Sort Method: external merge  Disk: 244696kB
+         Buffers: shared hit=1222 read=50335, temp read=61170 written=61279
+         ->  Append  (cost=0.00..126551.01 rows=5000002 width=37) (actual time=0.015..470.212 rows=5000000 loops=1)
+               Buffers: shared hit=1216 read=50335
+               ->  Seq Scan on sensor_readings_2025_01 sensor_readings_part_1  (cost=0.00..18132.99 rows=892799 width=37) (actual time=0.014..53.957 rows=892799 loops=1)
+                     Buffers: shared hit=160 read=9045
+               ->  Seq Scan on sensor_readings_2025_02 sensor_readings_part_2  (cost=0.00..16378.00 rows=806400 width=37) (actual time=0.013..49.673 rows=806400 loops=1)
+                     Buffers: shared hit=288 read=8026
+               ->  Seq Scan on sensor_readings_2025_03 sensor_readings_part_3  (cost=0.00..18133.00 rows=892800 width=37) (actual time=0.021..50.222 rows=892800 loops=1)
+                     Buffers: shared hit=384 read=8821
+               ->  Seq Scan on sensor_readings_2025_04 sensor_readings_part_4  (cost=0.00..17548.00 rows=864000 width=37) (actual time=0.014..46.677 rows=864000 loops=1)
+                     Buffers: shared hit=128 read=8780
+               ->  Seq Scan on sensor_readings_2025_05 sensor_readings_part_5  (cost=0.00..18133.00 rows=892800 width=37) (actual time=0.011..50.384 rows=892800 loops=1)
+                     Buffers: shared hit=128 read=9077
+               ->  Seq Scan on sensor_readings_2025_06 sensor_readings_part_6  (cost=0.00..13226.01 rows=651201 width=37) (actual time=0.023..39.839 rows=651201 loops=1)
+                     Buffers: shared hit=128 read=6586
+               ->  Seq Scan on sensor_readings_2025_07 sensor_readings_part_7  (cost=0.00..0.00 rows=1 width=244) (actual time=0.004..0.005 rows=0 loops=1)
+               ->  Seq Scan on sensor_readings_part_default sensor_readings_part_8  (cost=0.00..0.00 rows=1 width=244) (actual time=0.001..0.001 rows=0 loops=1)
+ Planning:
+   Buffers: shared hit=451
+ Planning Time: 0.366 ms
+ Execution Time: 4371.500 ms
+(26 rows)
+  [warm-run] run1=discard run2=4379.435ms run3=4371.500ms → reported=4371.500ms (min of warm runs)
+
+  P3 (part, no secondary index):
+SET
+                                                                                          QUERY PLAN                                                                                           
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Finalize GroupAggregate  (cost=186066.12..530894.43 rows=2591480 width=41) (actual time=370.712..621.466 rows=21600 loops=1)
+   Group Key: (date_trunc('hour'::text, sensor_readings_part.recorded_at)), sensor_readings_part.device_id
+   Buffers: shared hit=1146 read=25668, temp read=26674 written=26724
+   ->  Gather Merge  (cost=186066.12..465027.65 rows=2159566 width=65) (actual time=370.709..617.423 rows=23120 loops=1)
+         Workers Planned: 2
+         Workers Launched: 2
+         Buffers: shared hit=1146 read=25668, temp read=26674 written=26724
+         ->  Partial GroupAggregate  (cost=185066.09..214760.13 rows=1079783 width=65) (actual time=368.256..455.954 rows=7707 loops=3)
+               Group Key: (date_trunc('hour'::text, sensor_readings_part.recorded_at)), sensor_readings_part.device_id
+               Buffers: shared hit=1146 read=25668, temp read=26674 written=26724
+               ->  Sort  (cost=185066.09..187765.55 rows=1079783 width=25) (actual time=368.240..405.022 rows=864000 loops=3)
+                     Sort Key: (date_trunc('hour'::text, sensor_readings_part.recorded_at)), sensor_readings_part.device_id
+                     Sort Method: external merge  Disk: 35784kB
+                     Buffers: shared hit=1146 read=25668, temp read=26674 written=26724
+                     Worker 0:  Sort Method: external merge  Disk: 36104kB
+                     Worker 1:  Sort Method: external merge  Disk: 34952kB
+                     ->  Parallel Append  (cost=0.00..51022.37 rows=1079783 width=25) (actual time=0.015..127.133 rows=864000 loops=3)
+                           Buffers: shared hit=1056 read=25668
+                           ->  Parallel Seq Scan on sensor_readings_2025_03 sensor_readings_part_3  (cost=0.00..15714.81 rows=371925 width=25) (actual time=0.014..33.455 rows=297600 loops=3)
+                                 Filter: ((recorded_at >= '2025-01-01 00:00:00+00'::timestamp with time zone) AND (recorded_at < '2025-04-01 00:00:00+00'::timestamp with time zone))
+                                 Buffers: shared hit=448 read=8757
+                           ->  Parallel Seq Scan on sensor_readings_2025_01 sensor_readings_part_1  (cost=0.00..15714.81 rows=371925 width=25) (actual time=0.012..49.254 rows=446400 loops=2)
+                                 Filter: ((recorded_at >= '2025-01-01 00:00:00+00'::timestamp with time zone) AND (recorded_at < '2025-04-01 00:00:00+00'::timestamp with time zone))
+                                 Buffers: shared hit=256 read=8949
+                           ->  Parallel Seq Scan on sensor_readings_2025_02 sensor_readings_part_2  (cost=0.00..14193.83 rows=335933 width=25) (actual time=0.018..87.482 rows=806400 loops=1)
+                                 Filter: ((recorded_at >= '2025-01-01 00:00:00+00'::timestamp with time zone) AND (recorded_at < '2025-04-01 00:00:00+00'::timestamp with time zone))
+                                 Buffers: shared hit=352 read=7962
+ Planning:
+   Buffers: shared hit=304
+ Planning Time: 0.315 ms
+ Execution Time: 623.403 ms
+(31 rows)
+  [warm-run] run1=discard run2=623.403ms run3=624.415ms → reported=623.403ms (min of warm runs)
+
+════════════════════════════════════════════════════════════════════════
+  [LEVER ATTRIBUTION Part 2 — PARTITION TOGGLE]
+  IDENTICAL indexes on both tables; only partitioning differs.
+  flat+idx vs part+idx — isolates the partitioning variable.
+════════════════════════════════════════════════════════════════════════
+
+  P1 (flat + idx_sr_flat_device_time) — partition toggle BEFORE:
+SET
+                                                                                                  QUERY PLAN                                                                                                  
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Bitmap Heap Scan on sensor_readings_flat  (cost=2673.46..57826.42 rows=81963 width=37) (actual time=4.795..15.901 rows=80641 loops=1)
+   Recheck Cond: (((device_id)::text = 'device-1'::text) AND (recorded_at >= '2025-02-01 00:00:00+00'::timestamp with time zone) AND (recorded_at <= '2025-03-01 00:00:00+00'::timestamp with time zone))
+   Heap Blocks: exact=8314
+   Buffers: shared hit=8714
+   ->  Bitmap Index Scan on idx_sr_flat_device_time  (cost=0.00..2652.97 rows=81963 width=0) (actual time=4.172..4.173 rows=80641 loops=1)
+         Index Cond: (((device_id)::text = 'device-1'::text) AND (recorded_at >= '2025-02-01 00:00:00+00'::timestamp with time zone) AND (recorded_at <= '2025-03-01 00:00:00+00'::timestamp with time zone))
+         Buffers: shared hit=400
+ Planning:
+   Buffers: shared hit=134
+ Planning Time: 0.179 ms
+ Execution Time: 17.485 ms
+(11 rows)
+  [warm-run] run1=discard run2=17.994ms run3=17.485ms → reported=17.485ms (min of warm runs)
+
+  P2 (flat + idx_sr_flat_device_time) — partition toggle BEFORE:
+SET
+                                                                                  QUERY PLAN                                                                                  
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Result  (cost=0.43..392079.27 rows=10 width=37) (actual time=0.016..1069.443 rows=10 loops=1)
+   Buffers: shared read=540103
+   ->  Unique  (cost=0.43..392079.27 rows=10 width=37) (actual time=0.015..1069.431 rows=10 loops=1)
+         Buffers: shared read=540103
+         ->  Index Scan using idx_sr_flat_device_time on sensor_readings_flat  (cost=0.43..379579.37 rows=4999958 width=37) (actual time=0.015..885.028 rows=5000000 loops=1)
+               Buffers: shared read=540103
+ Planning:
+   Buffers: shared hit=108 read=29
+ Planning Time: 0.218 ms
+ Execution Time: 1069.489 ms
+(10 rows)
+  [warm-run] run1=discard run2=1087.868ms run3=1069.489ms → reported=1069.489ms (min of warm runs)
+
+  P3 (flat + idx_sr_flat_brin_time) — partition toggle BEFORE:
+SET
+                                                                                        QUERY PLAN                                                                                        
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Finalize GroupAggregate  (cost=205319.93..548318.35 rows=2577727 width=41) (actual time=333.537..437.387 rows=21600 loops=1)
+   Group Key: (date_trunc('hour'::text, recorded_at)), device_id
+   Buffers: shared hit=5009 read=21784, temp read=26674 written=26725
+   ->  Gather Merge  (cost=205319.93..482801.12 rows=2148106 width=65) (actual time=333.522..430.061 rows=63194 loops=1)
+         Workers Planned: 2
+         Workers Launched: 2
+         Buffers: shared hit=5009 read=21784, temp read=26674 written=26725
+         ->  Partial GroupAggregate  (cost=204319.91..233856.36 rows=1074053 width=65) (actual time=331.830..423.129 rows=21065 loops=3)
+               Group Key: (date_trunc('hour'::text, recorded_at)), device_id
+               Buffers: shared hit=5009 read=21784, temp read=26674 written=26725
+               ->  Sort  (cost=204319.91..207005.04 rows=1074053 width=25) (actual time=331.817..366.087 rows=864000 loops=3)
+                     Sort Key: (date_trunc('hour'::text, recorded_at)), device_id
+                     Sort Method: external merge  Disk: 35632kB
+                     Buffers: shared hit=5009 read=21784, temp read=26674 written=26725
+                     Worker 0:  Sort Method: external merge  Disk: 35464kB
+                     Worker 1:  Sort Method: external merge  Disk: 35744kB
+                     ->  Parallel Bitmap Heap Scan on sensor_readings_flat  (cost=667.09..71028.11 rows=1074053 width=25) (actual time=0.120..102.550 rows=864000 loops=3)
+                           Recheck Cond: ((recorded_at >= '2025-01-01 00:00:00+00'::timestamp with time zone) AND (recorded_at < '2025-04-01 00:00:00+00'::timestamp with time zone))
+                           Rows Removed by Index Recheck: 982
+                           Heap Blocks: lossy=8921
+                           Buffers: shared hit=4977 read=21784
+                           ->  Bitmap Index Scan on idx_sr_flat_brin_time  (cost=0.00..22.66 rows=2580623 width=0) (actual time=0.306..0.306 rows=267520 loops=1)
+                                 Index Cond: ((recorded_at >= '2025-01-01 00:00:00+00'::timestamp with time zone) AND (recorded_at < '2025-04-01 00:00:00+00'::timestamp with time zone))
+                                 Buffers: shared hit=9
+ Planning:
+   Buffers: shared hit=159
+ Planning Time: 0.202 ms
+ Execution Time: 438.953 ms
+(28 rows)
+  [warm-run] run1=discard run2=438.953ms run3=473.964ms → reported=438.953ms (min of warm runs)
+
+  ── Part 1b: sensor_readings_part, WITH idx_sr_device_time + idx_sr_brin_time ──
+  (warm exec times already shown in headline section above)
+  P1: 20.702ms  |  P2: 1525.614ms  |  P3: 624.825ms
+
+  INDEX EFFECT (part no-index → part with-index, partition constant):
+  P1: 33.291ms → 20.702ms → 1.6x speedup from index
+  P2: 4371.500ms → 1525.614ms → 2.9x speedup from index
+  P3: 623.403ms → 624.825ms → 1.0x speedup from index
+
+  PARTITION EFFECT (flat+index → part+index, index constant):
+  P1: flat=17.485ms → part=20.702ms → 0.8x  [REVERSAL — after slower than before]
+      Partition REGRESSES P1 slightly vs flat+index: Append overhead from 2 partition
+      scans offsets the pruning benefit at this table size. vs true naive (no index),
+      P1 improves 3.4x — that gain is driven by the index; partition pruning contributes
+      marginally (B-tree index already filters to ~80k rows regardless of structure).
+  P2: flat=1069.489ms → part=1525.614ms → 0.7x  [REVERSAL — after slower than before]
+      Partition REGRESSES P2: no time predicate → no pruning → planner must
+      Merge Append 8 partition index scans (overhead > flat single-index walk).
+  P3: flat=438.953ms → part=624.825ms → 0.7x  [REVERSAL — after slower than before]
+      Partition REGRESSES P3: flat BRIN over 5M rows with strong physical
+      correlation beats per-partition BRIN (each ~800k-900k partition is
+      small enough that planner prefers seq scan; flat BRIN filters 50% rows
+      in one bitmap pass). Partition adds Append overhead with no pruning benefit.
+
+  INTERVIEW TALKING POINT: Partitioning is not free.
+  For ALL three patterns, flat+index beats or ties part+index. The dominant gain
+  in all patterns is the index (IDX_R), NOT partitioning (PART_R = 0.7-0.8x).
+  Partitioning helps only when the partition key aligns with a WHERE predicate
+  AND the table is large enough that pruning removes more work than Append adds.
+  At 5M rows with a good B-tree index, the index alone is sufficient — partitioning
+  adds overhead without benefit for these query shapes. Knowing this distinction
+  is the differentiating insight — not just 'partitioning = faster'.

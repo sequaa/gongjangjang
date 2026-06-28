@@ -1,0 +1,98 @@
+╔══════════════════════════════════════════════════════════════════════╗
+║  query_before.txt — TRUE NAIVE BASELINE                              ║
+║  sensor_readings_flat, ALL secondary indexes DROPPED (PK only)       ║
+║  Mirrors schema.sql: flat table, BIGSERIAL PK, no secondary index     ║
+╚══════════════════════════════════════════════════════════════════════╝
+Generated: 2026-06-28T13:28:53Z
+Row counts: sensor_readings_flat=5000000
+Secondary indexes: 0 (confirmed PK-only — true Seq Scan baseline)
+Methodology: 3 runs per query, run1 discarded (cold), warm=min(run2,run3)
+JIT: OFF (SET jit=off applied symmetrically to all measured queries)
+
+════════════════════════════════════════
+  PATTERN 1: Time-range scan (flat, no secondary index)
+  WHERE device_id='device-1' AND recorded_at BETWEEN 2025-02-01 AND 2025-03-01
+  Expected: Seq Scan (no index to use)
+════════════════════════════════════════
+SET
+                                                                                                QUERY PLAN                                                                                                
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Gather  (cost=1000.00..96892.73 rows=78877 width=37) (actual time=11.421..68.087 rows=80641 loops=1)
+   Workers Planned: 2
+   Workers Launched: 2
+   Buffers: shared hit=12766 read=38781
+   ->  Parallel Seq Scan on sensor_readings_flat  (cost=0.00..88005.03 rows=32865 width=37) (actual time=10.670..64.866 rows=26880 loops=3)
+         Filter: ((recorded_at >= '2025-02-01 00:00:00+00'::timestamp with time zone) AND (recorded_at <= '2025-03-01 00:00:00+00'::timestamp with time zone) AND ((device_id)::text = 'device-1'::text))
+         Rows Removed by Filter: 1639786
+         Buffers: shared hit=12766 read=38781
+ Planning:
+   Buffers: shared hit=80
+ Planning Time: 0.141 ms
+ Execution Time: 69.757 ms
+(12 rows)
+  [warm-run] run1=discard run2=69.757ms run3=79.083ms → reported=69.757ms (min of warm runs)
+
+════════════════════════════════════════
+  PATTERN 2: Device latest value (flat, no secondary index)
+  DISTINCT ON (device_id) ORDER BY device_id, recorded_at DESC
+  Expected: Seq Scan + Sort-spill (external merge)
+════════════════════════════════════════
+SET
+                                                                  QUERY PLAN                                                                  
+----------------------------------------------------------------------------------------------------------------------------------------------
+ Unique  (cost=931320.02..956319.81 rows=10 width=37) (actual time=3556.560..4112.624 rows=10 loops=1)
+   Buffers: shared hit=12996 read=38557, temp read=61170 written=61279
+   ->  Sort  (cost=931320.02..943819.92 rows=4999958 width=37) (actual time=3556.559..3948.644 rows=5000000 loops=1)
+         Sort Key: device_id, recorded_at DESC
+         Sort Method: external merge  Disk: 244696kB
+         Buffers: shared hit=12996 read=38557, temp read=61170 written=61279
+         ->  Seq Scan on sensor_readings_flat  (cost=0.00..101546.58 rows=4999958 width=37) (actual time=0.015..268.501 rows=5000000 loops=1)
+               Buffers: shared hit=12990 read=38557
+ Planning:
+   Buffers: shared hit=94
+ Planning Time: 0.124 ms
+ Execution Time: 4121.566 ms
+(12 rows)
+  [warm-run] run1=discard run2=4121.566ms run3=4126.444ms → reported=4121.566ms (min of warm runs)
+
+════════════════════════════════════════
+  PATTERN 3: Aggregation / downsample (flat, no secondary index)
+  date_trunc(hour) + avg/min/max WHERE recorded_at Jan-Apr 2025
+  Expected: Seq Scan + partial aggregation
+════════════════════════════════════════
+SET
+                                                                                   QUERY PLAN                                                                                   
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Finalize GroupAggregate  (cost=220707.34..565940.58 rows=2594523 width=41) (actual time=359.599..454.164 rows=21600 loops=1)
+   Group Key: (date_trunc('hour'::text, recorded_at)), device_id
+   Buffers: shared hit=13336 read=38301, temp read=26674 written=26725
+   ->  Gather Merge  (cost=220707.34..499996.46 rows=2162102 width=65) (actual time=359.581..449.543 rows=29121 loops=1)
+         Workers Planned: 2
+         Workers Launched: 2
+         Buffers: shared hit=13336 read=38301, temp read=26674 written=26725
+         ->  Partial GroupAggregate  (cost=219707.31..249436.22 rows=1081051 width=65) (actual time=354.798..443.246 rows=9707 loops=3)
+               Group Key: (date_trunc('hour'::text, recorded_at)), device_id
+               Buffers: shared hit=13336 read=38301, temp read=26674 written=26725
+               ->  Sort  (cost=219707.31..222409.94 rows=1081051 width=25) (actual time=354.782..389.652 rows=864000 loops=3)
+                     Sort Key: (date_trunc('hour'::text, recorded_at)), device_id
+                     Sort Method: external merge  Disk: 35312kB
+                     Buffers: shared hit=13336 read=38301, temp read=26674 written=26725
+                     Worker 0:  Sort Method: external merge  Disk: 36216kB
+                     Worker 1:  Sort Method: external merge  Disk: 35312kB
+                     ->  Parallel Seq Scan on sensor_readings_flat  (cost=0.00..85499.37 rows=1081051 width=25) (actual time=0.019..123.837 rows=864000 loops=3)
+                           Filter: ((recorded_at >= '2025-01-01 00:00:00+00'::timestamp with time zone) AND (recorded_at < '2025-04-01 00:00:00+00'::timestamp with time zone))
+                           Rows Removed by Filter: 802667
+                           Buffers: shared hit=13246 read=38301
+ Planning:
+   Buffers: shared hit=112
+ Planning Time: 0.161 ms
+ Execution Time: 455.927 ms
+(24 rows)
+  [warm-run] run1=discard run2=483.725ms run3=455.927ms → reported=455.927ms (min of warm runs)
+
+╔══════════════════════════════════════════════════════════════════════╗
+║  EXECUTION TIME SUMMARY (warm exec times — true naive baseline)      ║
+╚══════════════════════════════════════════════════════════════════════╝
+  P1 time-range   (flat, no index): 69.757ms
+  P2 device-latest(flat, no index): 4121.566ms
+  P3 aggregation  (flat, no index): 455.927ms
