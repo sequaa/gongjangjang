@@ -1,0 +1,67 @@
+probe seq=1 publishedAtMs=1782647484014 latencyMs=5
+probe seq=2 publishedAtMs=1782647484220 latencyMs=3
+probe seq=3 publishedAtMs=1782647484424 latencyMs=4
+probe seq=4 publishedAtMs=1782647484629 latencyMs=4
+probe seq=5 publishedAtMs=1782647484835 latencyMs=4
+probe seq=6 publishedAtMs=1782647485040 latencyMs=4
+probe seq=7 publishedAtMs=1782647485245 latencyMs=3
+probe seq=8 publishedAtMs=1782647485448 latencyMs=4
+probe seq=9 publishedAtMs=1782647485653 latencyMs=4
+probe seq=10 publishedAtMs=1782647485859 latencyMs=4
+probe seq=11 publishedAtMs=1782647486064 latencyMs=5
+probe seq=12 publishedAtMs=1782647486270 latencyMs=7
+probe seq=13 publishedAtMs=1782647486479 latencyMs=5
+probe seq=14 publishedAtMs=1782647486685 latencyMs=4
+probe seq=15 publishedAtMs=1782647486890 latencyMs=4
+probe seq=16 publishedAtMs=1782647487095 latencyMs=5
+probe seq=17 publishedAtMs=1782647487301 latencyMs=5
+probe seq=18 publishedAtMs=1782647487508 latencyMs=4
+probe seq=19 publishedAtMs=1782647487713 latencyMs=5
+probe seq=20 publishedAtMs=1782647487919 latencyMs=2
+probe seq=21 publishedAtMs=1782647488122 latencyMs=4
+probe seq=22 publishedAtMs=1782647488327 latencyMs=5
+probe seq=23 publishedAtMs=1782647488533 latencyMs=5
+probe seq=24 publishedAtMs=1782647488739 latencyMs=4
+probe seq=25 publishedAtMs=1782647488944 latencyMs=4
+probe seq=26 publishedAtMs=1782647489149 latencyMs=4
+probe seq=27 publishedAtMs=1782647489354 latencyMs=5
+probe seq=28 publishedAtMs=1782647489561 latencyMs=5
+probe seq=29 publishedAtMs=1782647489767 latencyMs=6
+probe seq=30 publishedAtMs=1782647489974 latencyMs=3
+probe seq=31 publishedAtMs=1782647490178 latencyMs=4
+probe seq=32 publishedAtMs=1782647490383 latencyMs=3
+probe seq=33 publishedAtMs=1782647490587 latencyMs=4
+probe seq=34 publishedAtMs=1782647490792 latencyMs=5
+probe seq=35 publishedAtMs=1782647490997 latencyMs=5
+probe seq=36 publishedAtMs=1782647491203 latencyMs=5
+probe seq=37 publishedAtMs=1782647491408 latencyMs=5
+probe seq=38 publishedAtMs=1782647491613 latencyMs=4
+probe seq=39 publishedAtMs=1782647491818 latencyMs=4
+probe seq=40 publishedAtMs=1782647492022 latencyMs=4
+probe seq=41 publishedAtMs=1782647492227 latencyMs=4
+probe seq=42 publishedAtMs=1782647492433 latencyMs=4
+probe seq=43 publishedAtMs=1782647492639 latencyMs=4
+probe seq=44 publishedAtMs=1782647492844 latencyMs=5
+probe seq=45 publishedAtMs=1782647493049 latencyMs=5
+probe seq=46 publishedAtMs=1782647493255 latencyMs=5
+probe seq=47 publishedAtMs=1782647493461 latencyMs=5
+probe seq=48 publishedAtMs=1782647493667 latencyMs=4
+probe seq=49 publishedAtMs=1782647493873 latencyMs=4
+probe seq=50 publishedAtMs=1782647494078 latencyMs=4
+SUMMARY {
+  "kind": "e2e-latency",
+  "mqttUrl": "mqtt://localhost:1883",
+  "wsUrl": "ws://localhost:18080/ws/sensors",
+  "metric": "publish_to_ws_broadcast_ms",
+  "probesRequested": 50,
+  "probesMeasured": 50,
+  "probesTimedOut": 0,
+  "gapMs": 200,
+  "min": 2,
+  "mean": 4.34,
+  "p50": 4,
+  "p90": 5,
+  "p95": 5,
+  "p99": 7,
+  "max": 7
+}

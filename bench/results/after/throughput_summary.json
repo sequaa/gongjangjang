@@ -1,0 +1,16 @@
+{
+  "kind": "throughput-derived",
+  "metric": "rows_persisted_per_second (naive single-row INSERT)",
+  "throughputRowsPerSec": 71053,
+  "windowNote": "steady window [+15000ms .. min(-5000ms, plateau)]",
+  "windowSamples": 91,
+  "windowSpanSec": 45,
+  "overallSlopeRowsPerSec": 66681,
+  "persistedRowsTotal": 4505335,
+  "publishesAttempted": 4505335,
+  "publishesAcked": 4505335,
+  "unpersistedAcked": 0,
+  "dropPctOfAcked": 0,
+  "loadDurationMs": 60000,
+  "concurrency": 24
+}

@@ -1,0 +1,137 @@
+{
+  "kind": "knee-sweep",
+  "slo": {
+    "p99Ms": 500,
+    "dropPct": 1
+  },
+  "ramp": {
+    "startRate": 500,
+    "factor": 1.6,
+    "windowSec": 15,
+    "stepsAfterBreak": 2
+  },
+  "steps": 9,
+  "kneeOfferedRatePerSec": 5064,
+  "saturationPersistRatePerSec": 6074,
+  "brokeAtOfferedRatePerSec": 8103,
+  "brokeReason": "drop",
+  "curve": [
+    {
+      "targetRate": 500,
+      "achievedRate": 483,
+      "persistedRowsPerSec": 483,
+      "dropPct": 0,
+      "latP50": 1,
+      "latP99": 8,
+      "probesOk": 75,
+      "probesTimeout": 0,
+      "latencyValid": true,
+      "verdict": "healthy",
+      "breakReason": ""
+    },
+    {
+      "targetRate": 800,
+      "achievedRate": 773,
+      "persistedRowsPerSec": 773,
+      "dropPct": 0,
+      "latP50": 1,
+      "latP99": 19,
+      "probesOk": 75,
+      "probesTimeout": 0,
+      "latencyValid": true,
+      "verdict": "healthy",
+      "breakReason": ""
+    },
+    {
+      "targetRate": 1280,
+      "achievedRate": 1236,
+      "persistedRowsPerSec": 1236,
+      "dropPct": 0,
+      "latP50": 1,
+      "latP99": 9,
+      "probesOk": 75,
+      "probesTimeout": 0,
+      "latencyValid": true,
+      "verdict": "healthy",
+      "breakReason": ""
+    },
+    {
+      "targetRate": 2048,
+      "achievedRate": 1978,
+      "persistedRowsPerSec": 1978,
+      "dropPct": 0,
+      "latP50": 1,
+      "latP99": 19,
+      "probesOk": 75,
+      "probesTimeout": 0,
+      "latencyValid": true,
+      "verdict": "healthy",
+      "breakReason": ""
+    },
+    {
+      "targetRate": 3277,
+      "achievedRate": 3166,
+      "persistedRowsPerSec": 3166,
+      "dropPct": 0,
+      "latP50": 8,
+      "latP99": 13,
+      "probesOk": 75,
+      "probesTimeout": 0,
+      "latencyValid": true,
+      "verdict": "healthy",
+      "breakReason": ""
+    },
+    {
+      "targetRate": 5243,
+      "achievedRate": 5064,
+      "persistedRowsPerSec": 5064,
+      "dropPct": 0,
+      "latP50": 11,
+      "latP99": 60,
+      "probesOk": 75,
+      "probesTimeout": 0,
+      "latencyValid": true,
+      "verdict": "healthy",
+      "breakReason": ""
+    },
+    {
+      "targetRate": 8389,
+      "achievedRate": 8103,
+      "persistedRowsPerSec": 6074,
+      "dropPct": 25,
+      "latP50": 4,
+      "latP99": 185,
+      "probesOk": 74,
+      "probesTimeout": 1,
+      "latencyValid": true,
+      "verdict": "broken",
+      "breakReason": "drop"
+    },
+    {
+      "targetRate": 13422,
+      "achievedRate": 12968,
+      "persistedRowsPerSec": 5661,
+      "dropPct": 56.3,
+      "latP50": 3,
+      "latP99": 207,
+      "probesOk": 73,
+      "probesTimeout": 2,
+      "latencyValid": true,
+      "verdict": "broken",
+      "breakReason": "drop"
+    },
+    {
+      "targetRate": 21475,
+      "achievedRate": 20742,
+      "persistedRowsPerSec": 5791,
+      "dropPct": 72.1,
+      "latP50": 153,
+      "latP99": 232,
+      "probesOk": 75,
+      "probesTimeout": 0,
+      "latencyValid": true,
+      "verdict": "broken",
+      "breakReason": "drop"
+    }
+  ]
+}
