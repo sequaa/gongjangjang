@@ -42,10 +42,12 @@ services:
       context: ../backend
     restart: unless-stopped
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}?rewriteBatchedStatements=true
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
       MQTT_BROKER_URL: tcp://mosquitto:1883
+      # Ingest mode toggle: `INGEST_MODE=naive docker compose up -d backend` for kill-9 before demo.
+      INGEST_MODE: ${INGEST_MODE:-batch}
     ports:
       # Host 18080 -> container 8080 (host 8080 may be taken by other projects).
       - "18080:8080"
