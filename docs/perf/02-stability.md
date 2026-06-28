@@ -1,7 +1,7 @@
 # 안정성 증명 (Phase 2 — PERF-06)
 
 **측정일:** 2026-06-28  
-**환경:** Apple M4 / 32 GB RAM / Docker 28.3.0 / Java 21 (Spring Boot 4.1.0 / batch 모드)  
+**환경:** Apple M4 / 32 GB RAM / Docker 28.3.0 / Java 17 (OpenJDK 17.0.17, Spring Boot 4.1.0 / batch 모드)  
 **아티팩트:** `bench/results/soak_stats.csv`, `bench/results/k6-query-summary.json`, `bench/results/k6-ws-summary.json`, `bench/results/kill9.txt`
 
 ---
@@ -115,7 +115,7 @@ k6 run --summary-export bench/results/k6-query-summary.json bench/k6/query-load.
 
 50 VU 동접 HTTP 조회 — 처리율 15,742 req/s, 실패 0%, p99 << 500ms SLA.
 
-### WebSocket 동접 부하 (20 VUs, 30분)
+### WebSocket 동접 부하 (20 VUs, 2분)
 
 ```bash
 k6 run --summary-export bench/results/k6-ws-summary.json bench/k6/ws-load.js
