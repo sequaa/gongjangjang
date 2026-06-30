@@ -16,3 +16,7 @@ node_modules/
 dist/
 target/
 
+
+# NASA IMS raw bearing data (1GB; not committed — regenerate features.csv via data/nasa/preprocess.py)
+data/nasa/raw/
+data/nasa/.venv/

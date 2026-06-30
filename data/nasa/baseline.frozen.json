@@ -1,0 +1,45 @@
+{
+  "control_limits": {
+    "cl": 0.077255648,
+    "k": 3,
+    "lcl": 0.074026387,
+    "mu": 0.077255648,
+    "sigma": 0.00107642,
+    "ucl": 0.080484909
+  },
+  "f1_anchor_candidates_hours": [
+    8.19,
+    16.38,
+    32.77
+  ],
+  "failure_time": "2004-02-19T06:22:39",
+  "healthy_window": {
+    "end_index": 299,
+    "end_time": "2004-02-14T12:22:39",
+    "n": 300,
+    "start_index": 0,
+    "start_time": "2004-02-12T10:32:39"
+  },
+  "metric": "rms",
+  "provenance": [
+    "Healthy window = first 300 snapshots (idx 0..299, 2004-02-12T10:32:39 .. 2004-02-14T12:22:39). Chosen because RMS is stably ~0.07726 (sample sd ~0.00108) across this range; the first sample above mu+6*sigma is idx 533 and sustained degradation (>0.1) starts idx 647, both far after idx 299. This isolates the fresh-bearing region and excludes both the degradation ramp and the end-of-life shutdown collapse (idx ~982-983, RMS~0).",
+    "mu_base = mean(rms) and sigma_base = sample stdev (ddof=1) over the healthy window. sigma uses ddof=1 as the unbiased estimate of the population sigma.",
+    "control_limits (SPC I-chart, individuals): cl=mu_base, ucl=mu_base+3*sigma_base, lcl=mu_base-3*sigma_base (k=3, standard Shewhart 3-sigma). lcl stays positive for this RMS.",
+    "threshold (naive coarse operator band): min/max = mu_base +/- 8*sigma_base. m=8 is deliberately wider than the 3-sigma control limits so the threshold method is the coarsest (latest-detecting) rung of the ladder, defined by rule and frozen before measurement (no tuning).",
+    "spec_limits (D-06 Option a): usl=mu_base+6*sigma_base, lsl=mu_base-6*sigma_base (k=6, six-sigma operating spec derived from the healthy baseline since the vibration signal has no natural engineering spec). lsl is positive here so it is NOT floored at 0. Cpk is computed later (03-02) from rolling/current mu/sigma against these frozen USL/LSL; computing Cpk on the frozen baseline would collapse to a constant (RESEARCH Pitfall 2).",
+    "failure_time = last snapshot recorded_at (2004-02-19T06:22:39) = physical run end / end-of-life anchor (D-07 ground truth). It is NOT a threshold-alarm time. Its own RMS is ~0 (post-failure shutdown), which is expected; F1 anchor sensitivity is parameterized by f1_anchor_candidates_hours.",
+    "f1_anchor_candidates_hours = last 5%/10%/20% of the 163.83h run duration = [8.19, 16.38, 32.77]. These are inputs to the 03-04 F1 time-anchor sensitivity table (Open Q2)."
+  ],
+  "run_duration_hours": 163.83,
+  "source": "NASA IMS Bearing Set 2, bearing-1 outer-race run-to-failure",
+  "spec_limits": {
+    "k": 6,
+    "lsl": 0.070797125,
+    "usl": 0.083714171
+  },
+  "threshold": {
+    "m": 8,
+    "max": 0.085867012,
+    "min": 0.068644285
+  }
+}

@@ -42,6 +42,28 @@ export function createFleet(opts: FleetOptions): Device[] {
   return fleet;
 }
 
+/** One device whose source is supplied by the caller (dependency injection). */
+export interface InjectedDevice {
+  deviceId: string;
+  metric: string;
+  source: SignalSource;
+  anomaly?: boolean;
+}
+
+/**
+ * Builds a fleet from caller-supplied sources (e.g. the NASA replay path), keeping
+ * fleet.ts pure: it does no csv/file loading itself, it only wires devices. The
+ * synthetic topology in `createFleet` is left untouched.
+ */
+export function createFleetFromSources(devices: InjectedDevice[]): Device[] {
+  return devices.map((d) => ({
+    deviceId: d.deviceId,
+    metric: d.metric,
+    anomaly: d.anomaly ?? false,
+    source: d.source,
+  }));
+}
+
 export interface FleetPublish {
   topic: string;
   reading: SensorReading;
