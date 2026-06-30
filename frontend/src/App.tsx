@@ -15,25 +15,28 @@ import { ValueTiles } from "./components/ValueTiles";
 import { AlarmPanel } from "./components/AlarmPanel";
 import {
   mergeSpcChartData,
+  mlAnomalyMarkers,
+  mlScoreAxisAndLine,
   spcCpkAxisAndLine,
   spcReferenceLines,
   spcWeMarkers,
 } from "./components/SignalOverlay";
 
 export default function App() {
-  const { readings, devices, alarms, spcCpk, baseline, connected, ackResolve } =
+  const { readings, devices, alarms, spcCpk, mlScore, baseline, connected, ackResolve } =
     useSensorSocket();
 
   // Chart a single device's series so the line stays coherent across N devices.
   const focusId = devices[0]?.deviceId;
-  // ONE shared time axis (D-11①): readings + the Cpk trajectory merged on time.
-  const data = mergeSpcChartData(readings, spcCpk, focusId);
+  // ONE shared time axis (D-11①): readings + Cpk + ML score merged on time, so
+  // all three detectors are directly comparable on a single XAxis.
+  const data = mergeSpcChartData(readings, spcCpk, focusId, mlScore);
 
-  // Generic (non-SPC) alarm ticks only — SPC WE alarms get distinct markers via
-  // spcWeMarkers so threshold-vs-SPC separation stays visible (no double lines).
-  // Categorical x-axis: a non-matching time simply won't render (safe).
+  // Generic (non-SPC, non-ML) alarm ticks only — SPC WE and ML if_anomaly alarms
+  // get distinct markers (spcWeMarkers / mlAnomalyMarkers) so each detector stays
+  // visually separable. Categorical x-axis: a non-matching time won't render.
   const alarmTicks = alarms
-    .filter((a) => a.deviceId === focusId && a.detector !== "spc")
+    .filter((a) => a.deviceId === focusId && a.detector !== "spc" && a.detector !== "ml")
     .map((a) => new Date(a.firstOccurredAt).toLocaleTimeString());
 
   return (
@@ -89,6 +92,11 @@ export default function App() {
               {spcReferenceLines(baseline)}
               {spcWeMarkers(alarms, focusId)}
               {spcCpkAxisAndLine()}
+              {/* 03-03 ML overlay — anomaly_score line on its own right axis plus
+                  if_anomaly fire markers, on the SAME time axis so threshold/SPC/
+                  ML are directly comparable (which detector fires first). */}
+              {mlScoreAxisAndLine()}
+              {mlAnomalyMarkers(alarms, focusId)}
               {/* connectNulls: the merged axis injects cpk-only rows (value
                   undefined) between readings — bridge them so the sensor line
                   stays continuous. */}
@@ -99,6 +107,7 @@ export default function App() {
         <div style={{ display: "flex", gap: 16, flexWrap: "wrap", fontSize: 11, color: "#555", marginTop: 6 }}>
           <span style={{ color: "#a00" }}>━ threshold min/max</span>
           <span style={{ color: "#7c3aed" }}>┅ UCL/LCL ±3σ · │ WE-rule fire · Cpk (right axis)</span>
+          <span style={{ color: "#ea580c" }}>━ ML anomaly score (right axis) · ┊ if_anomaly fire</span>
         </div>
       </Section>
 

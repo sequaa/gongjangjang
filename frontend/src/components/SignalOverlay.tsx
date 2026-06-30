@@ -1,6 +1,6 @@
 import { Line, ReferenceLine, YAxis } from "recharts";
 import type { ReactElement } from "react";
-import type { Alarm, Baseline, SensorReading, SpcSignal } from "../types";
+import type { Alarm, Baseline, MlSignal, SensorReading, SpcSignal } from "../types";
 
 /**
  * SPC overlay (03-02 Task 3) for the main reading chart — shares ONE time axis
@@ -17,6 +17,8 @@ import type { Alarm, Baseline, SensorReading, SpcSignal } from "../types";
 
 /** Distinct from the 03-01 threshold red — SPC limits/markers are purple. */
 const SPC_COLOR = "#7c3aed";
+/** Distinct from threshold-red and SPC-purple — ML score/markers are orange. */
+const ML_COLOR = "#ea580c";
 
 export interface SpcChartRow {
   t: string;
@@ -24,6 +26,7 @@ export interface SpcChartRow {
   ts: number;
   value?: number;
   cpk?: number;
+  ml?: number;
 }
 
 /**
@@ -31,12 +34,14 @@ export interface SpcChartRow {
  * time axis (D-11①). Both timelines are keyed by epoch-ms so a reading and a
  * Cpk point at the same instant collapse into a single row; the categorical
  * label {@code t} matches App's existing {@code toLocaleTimeString()} format so
- * threshold lines, WE markers and the Cpk line all align on the same XAxis.
+ * threshold lines, WE markers, the Cpk line and the ML score line all align on
+ * the same XAxis (D-11① — every detector comparable on ONE time axis).
  */
 export function mergeSpcChartData(
   readings: SensorReading[],
   cpkSeries: SpcSignal[],
   focusId: string | undefined,
+  mlSeries: MlSignal[] = [],
 ): SpcChartRow[] {
   const rows = new Map<number, SpcChartRow>();
   const put = (iso: string, patch: Partial<SpcChartRow>) => {
@@ -50,6 +55,9 @@ export function mergeSpcChartData(
   cpkSeries
     .filter((s) => s.deviceId === focusId)
     .forEach((s) => put(s.occurredAt, { cpk: s.value }));
+  mlSeries
+    .filter((s) => s.deviceId === focusId)
+    .forEach((s) => put(s.occurredAt, { ml: s.value }));
   return [...rows.values()].sort((a, b) => a.ts - b.ts);
 }
 
@@ -126,6 +134,63 @@ export function spcCpkAxisAndLine(): ReactElement[] {
       type="monotone"
       dataKey="cpk"
       stroke={SPC_COLOR}
+      strokeWidth={2}
+      dot={false}
+      connectNulls
+      isAnimationActive={false}
+    />,
+  ];
+}
+
+/**
+ * ML if_anomaly fire markers — the ML alarms already in {@code alarms[]}
+ * (detector === "ml"), drawn as solid orange verticals so they read distinctly
+ * from the purple SPC WE markers and the dashed amber generic ticks. Placing all
+ * three detectors' verticals on the SAME XAxis is what makes "which detector
+ * fires first" visually readable (D-11①).
+ */
+export function mlAnomalyMarkers(
+  alarms: Alarm[],
+  focusId: string | undefined,
+): ReactElement[] {
+  return alarms
+    .filter((a) => a.detector === "ml" && a.deviceId === focusId)
+    .map((a, i) => (
+      <ReferenceLine
+        key={`ml-fire-${a.id ?? i}`}
+        x={new Date(a.firstOccurredAt).toLocaleTimeString()}
+        stroke={ML_COLOR}
+        strokeWidth={1.5}
+        strokeDasharray="1 2"
+        ifOverflow="extendDomain"
+      />
+    ));
+}
+
+/**
+ * A third Y-axis + ML anomaly_score line on the SAME chart/time axis. Score and
+ * Cpk live on different scales, so the ML score gets its own right axis (orange)
+ * pinned to [0, 1] — higher = more anomalous, the inverse of the descending Cpk.
+ * Keeping it on the shared XAxis lets the three detectors be compared directly.
+ * {@code connectNulls} bridges the rows that carry only readings/cpk.
+ */
+export function mlScoreAxisAndLine(): ReactElement[] {
+  return [
+    <YAxis
+      key="ml-axis"
+      yAxisId="ml"
+      orientation="right"
+      domain={[0, 1]}
+      width={36}
+      tick={{ fontSize: 11, fill: ML_COLOR }}
+      label={{ value: "ML score", angle: -90, position: "insideRight", fontSize: 11, fill: ML_COLOR }}
+    />,
+    <Line
+      key="ml-line"
+      yAxisId="ml"
+      type="monotone"
+      dataKey="ml"
+      stroke={ML_COLOR}
       strokeWidth={2}
       dot={false}
       connectNulls

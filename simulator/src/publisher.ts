@@ -16,6 +16,7 @@ export function buildReading(
     value: sample.value,
     recordedAt: sample.recordedAt,
     publishedAtMs: Date.now(),
+    ...(sample.features !== undefined ? { features: sample.features } : {}),
   };
 }
 

@@ -1,0 +1,13 @@
+{
+  "n": 1000,
+  "service_url": "http://localhost:8000",
+  "features_csv": "data/nasa/features.csv",
+  "measures": "per-call latency = FastAPI inference + local HTTP roundtrip (ms)",
+  "warmup_calls": 20,
+  "p50_ms": 2.688,
+  "p95_ms": 2.8141,
+  "p99_ms": 2.9066,
+  "mean_ms": 2.6968,
+  "min_ms": 2.507,
+  "max_ms": 3.1685
+}

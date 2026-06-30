@@ -14,5 +14,18 @@ public record SensorReading(
         String metric,
         double value,
         Instant recordedAt,
-        long publishedAtMs) {
+        long publishedAtMs,
+        double[] features) {
+
+    /**
+     * Backward-compatible 5-arg constructor for call sites that carry no feature
+     * vector (DB row mapper, WS-only readings, existing tests). Delegates to the
+     * canonical 6-arg constructor with {@code features = null}.
+     *
+     * <p>The optional {@code features} array {@code [rms, kurtosis, crest]} is present
+     * only in nasa-mode payloads and is null otherwise; {@code value} stays = rms.
+     */
+    public SensorReading(String deviceId, String metric, double value, Instant recordedAt, long publishedAtMs) {
+        this(deviceId, metric, value, recordedAt, publishedAtMs, null);
+    }
 }

@@ -41,6 +41,22 @@ describe("NasaReplaySource", () => {
     expect(src.next("device-001", "rms").value).toBe(0.5);
   });
 
+  it("carries the full feature vector [rms, kurtosis, crest] per row", () => {
+    const src = new NasaReplaySource(rows, "rms");
+    expect(src.next("device-001", "rms").features).toEqual([0.1, 3.0, 1.4]);
+    expect(src.next("device-001", "rms").features).toEqual([0.2, 3.1, 1.5]);
+    expect(src.next("device-001", "rms").features).toEqual([0.5, 4.0, 2.0]);
+  });
+
+  it("clamps the feature vector to the last row after the end", () => {
+    const src = new NasaReplaySource(rows, "rms");
+    src.next("device-001", "rms"); // row 0
+    src.next("device-001", "rms"); // row 1
+    src.next("device-001", "rms"); // row 2 (last)
+    expect(src.next("device-001", "rms").features).toEqual([0.5, 4.0, 2.0]);
+    expect(src.next("device-001", "rms").features).toEqual([0.5, 4.0, 2.0]);
+  });
+
   it("maps Sample.recordedAt to the row's original recorded_at timestamp", () => {
     const src = new NasaReplaySource(rows, "rms");
     expect(src.next("device-001", "rms").recordedAt).toBe("2004-02-12T10:32:39Z");

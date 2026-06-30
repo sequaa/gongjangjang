@@ -40,6 +40,18 @@ export interface SpcSignal {
   occurredAt: string;
 }
 
+// One ML anomaly-score point (03-03). Same wire shape as SpcSignal but carries
+// detector === "ml" and signalType === "anomaly_score"; shared between the
+// GET /api/signals?detector=ml seed rows and the live WS `type:"signal"` frames.
+export interface MlSignal {
+  deviceId: string;
+  metric: string;
+  detector: string;
+  signalType: string;
+  value: number;
+  occurredAt: string;
+}
+
 // Frozen baseline limits from GET /api/baseline (single source of truth, D-11).
 export interface Baseline {
   thresholdMin: number;

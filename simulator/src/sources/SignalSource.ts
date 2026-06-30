@@ -7,6 +7,7 @@
 export interface Sample {
   value: number;
   recordedAt: string; // ISO-8601
+  features?: number[]; // optional full feature vector [rms, kurtosis, crest] (nasa replay); absent for synthetic
 }
 
 /** Pluggable signal source. `next` yields the next sample for a device/metric. */
@@ -23,4 +24,5 @@ export interface SensorReading extends Sample {
   deviceId: string;
   metric: string;
   publishedAtMs: number; // epoch millis, set immediately before publishing
+  features?: number[]; // optional [rms, kurtosis, crest]; present in nasa mode, omitted for synthetic
 }

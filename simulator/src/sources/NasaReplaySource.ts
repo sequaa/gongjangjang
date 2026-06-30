@@ -24,6 +24,7 @@ export class NasaReplaySource implements SignalSource {
     return {
       value: row[this.metricCol] as number,
       recordedAt: row.recorded_at,
+      features: [row.rms, row.kurtosis, row.crest],
     };
   }
 }

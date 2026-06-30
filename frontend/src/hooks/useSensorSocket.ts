@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { BACKEND_HTTP, WS_URL } from "../config";
-import type { Alarm, AlarmState, Baseline, SensorReading, SpcSignal } from "../types";
+import type { Alarm, AlarmState, Baseline, MlSignal, SensorReading, SpcSignal } from "../types";
 import { upsertDevice, deviceList, type DeviceSnapshot } from "../deviceState";
 
 const MAX_POINTS = 120;
@@ -12,6 +12,8 @@ export interface SocketState {
   alarms: Alarm[];
   /** Rolling SPC Cpk trajectory (oldest→newest) — descends as quality degrades. */
   spcCpk: SpcSignal[];
+  /** Rolling ML anomaly_score trajectory (oldest→newest) — rises as readings drift. */
+  mlScore: MlSignal[];
   baseline: Baseline | null;
   connected: boolean;
   /** PATCH an alarm's state then sync the local list. */
@@ -42,6 +44,7 @@ export function useSensorSocket(): SocketState {
   const [deviceMap, setDeviceMap] = useState<Record<string, DeviceSnapshot>>({});
   const [alarms, setAlarms] = useState<Alarm[]>([]);
   const [spcCpk, setSpcCpk] = useState<SpcSignal[]>([]);
+  const [mlScore, setMlScore] = useState<MlSignal[]>([]);
   const [baseline, setBaseline] = useState<Baseline | null>(null);
   const [connected, setConnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
@@ -86,6 +89,23 @@ export function useSensorSocket(): SocketState {
       });
   }, []);
 
+  // One-time ML anomaly_score seed so the trajectory has history before the first
+  // WS push. Mirror the SPC seed: pull the ml series and keep the anomaly_score
+  // points. Live anomaly_score points then arrive via WS push (no polling).
+  useEffect(() => {
+    fetch(`${BACKEND_HTTP}/api/signals?detector=ml`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((rows: MlSignal[]) => {
+        const scores = rows
+          .filter((s) => s.signalType === "anomaly_score")
+          .slice(-MAX_POINTS);
+        setMlScore(scores);
+      })
+      .catch(() => {
+        /* seed is best-effort; live signal frames will fill in */
+      });
+  }, []);
+
   // One-time baseline fetch: the chart's frozen limits (single source of truth).
   useEffect(() => {
     fetch(`${BACKEND_HTTP}/api/baseline`)
@@ -112,11 +132,15 @@ export function useSensorSocket(): SocketState {
             const alarm = normalizeAlarm(frame as Alarm);
             setAlarms((prev) => mergeAlarm(prev, alarm).slice(0, ALARM_LIMIT));
           } else if (frame?.type === "signal") {
-            // SPC trajectory push (D-11② — live, no polling). Only the cpk series
-            // feeds the descending curve; control_limit frames are ignored here
-            // because UCL/LCL are frozen from GET /api/baseline, not the stream.
-            const sig = frame as SpcSignal;
-            if (sig.signalType === "cpk") {
+            // Signal trajectory push (D-11② — live, no polling). Two detectors
+            // ride this branch: SPC cpk (descending curve) and ML anomaly_score
+            // (rising curve). control_limit frames are ignored because UCL/LCL are
+            // frozen from GET /api/baseline, not the stream.
+            if (frame.detector === "ml" && frame.signalType === "anomaly_score") {
+              const sig = frame as MlSignal;
+              setMlScore((prev) => [...prev, sig].slice(-MAX_POINTS));
+            } else if (frame.signalType === "cpk") {
+              const sig = frame as SpcSignal;
               setSpcCpk((prev) => [...prev, sig].slice(-MAX_POINTS));
             }
           } else {
@@ -159,6 +183,7 @@ export function useSensorSocket(): SocketState {
     devices: deviceList(deviceMap),
     alarms,
     spcCpk,
+    mlScore,
     baseline,
     connected,
     ackResolve,

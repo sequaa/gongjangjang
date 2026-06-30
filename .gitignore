@@ -20,3 +20,11 @@ target/
 # NASA IMS raw bearing data (1GB; not committed — regenerate features.csv via data/nasa/preprocess.py)
 data/nasa/raw/
 data/nasa/.venv/
+
+# ML FastAPI service (Phase 3) — project-local venv + python caches
+ml/.venv/
+ml/**/__pycache__/
+*.pyc
+
+# pytest cache (ml)
+ml/.pytest_cache/
