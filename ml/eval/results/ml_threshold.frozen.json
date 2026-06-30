@@ -1,0 +1,10 @@
+{
+  "comparison_note": "healthy_max is reported alongside p99 to expose ML's threshold-rule sensitivity; it does NOT replace the pre-committed healthy_p99 primary rule.",
+  "comparison_rule_healthy_max": 0.21115665035291997,
+  "healthy_window_end_index": 299,
+  "ml_threshold": 0.07722681440026884,
+  "model": "isolation_forest",
+  "rule": "healthy_p99",
+  "rule_description": "Frozen BEFORE measuring lead-time: ML_THRESHOLD = 99th percentile of the anomaly_score over the HEALTHY window (idx 0..299). Pre-committed; NOT chosen to maximize ML lead-time (anti-circularity, the D-05 parallel).",
+  "source": "model.joblib"
+}

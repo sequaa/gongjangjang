@@ -67,6 +67,28 @@ public class AlarmRepository {
                 Timestamp.from(firstOccurredAt));
     }
 
+    /** First-fire instant of one detector for a (device, metric). */
+    public record DetectorFirst(String detector, Instant first) {}
+
+    /**
+     * Per-detector earliest first_occurred_at for one (device, metric) — the
+     * D-04 lead-time source. This is a DB aggregate over the FULL alarm history,
+     * deliberately separate from the live 120-point WS overlay (RESEARCH Pitfall 5):
+     * lead-time spans a whole run-to-failure and cannot come from the rolling buffer.
+     * Fully parameterized — device/metric are bound, never concatenated (T-03-04-01).
+     */
+    public List<DetectorFirst> firstOccurrenceByDetector(String deviceId, String metric) {
+        return jdbcTemplate.query(
+                "SELECT detector, MIN(first_occurred_at) AS first_at FROM alarms "
+                        + "WHERE device_id = ? AND metric = ? GROUP BY detector "
+                        + "ORDER BY first_at",
+                (rs, n) -> new DetectorFirst(
+                        rs.getString("detector"),
+                        toInstant(rs.getTimestamp("first_at"))),
+                deviceId,
+                metric);
+    }
+
     /** Most recent alarms first (panel initial load). */
     public List<Alarm> findRecent(int limit) {
         return jdbcTemplate.query(

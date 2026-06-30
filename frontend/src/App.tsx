@@ -13,6 +13,7 @@ import { useSensorSocket } from "./hooks/useSensorSocket";
 import { StatusGrid } from "./components/StatusGrid";
 import { ValueTiles } from "./components/ValueTiles";
 import { AlarmPanel } from "./components/AlarmPanel";
+import { LeadtimeTable } from "./components/LeadtimeTable";
 import {
   mergeSpcChartData,
   mlAnomalyMarkers,
@@ -109,6 +110,10 @@ export default function App() {
           <span style={{ color: "#7c3aed" }}>┅ UCL/LCL ±3σ · │ WE-rule fire · Cpk (right axis)</span>
           <span style={{ color: "#ea580c" }}>━ ML anomaly score (right axis) · ┊ if_anomaly fire</span>
         </div>
+      </Section>
+
+      <Section title="탐지기별 리드타임 (고장 전 — DB 쿼리, D-04)">
+        <LeadtimeTable />
       </Section>
 
       <Section title="알람">

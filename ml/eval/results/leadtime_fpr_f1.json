@@ -1,0 +1,444 @@
+{
+  "dataset": "NASA IMS Bearing Set 2, bearing-1 outer-race run-to-failure",
+  "detection_rule": "first run of K consecutive snapshots past the limit; alarm fires at the K-th consecutive exceedance (run-END index); lead-time measured only from idx>=300 (frozen healthy/degradation boundary). K=1 reproduces single-touch first-occurrence.",
+  "detectors": {
+    "ml": {
+      "healthy_fpr": 0.01,
+      "k_consecutive_lead_time": {
+        "1": {
+          "fire_index": 398,
+          "fire_time": "2004-02-15T04:52:39",
+          "fired": true,
+          "lead_time_hours": 97.5,
+          "lead_time_seconds": 351000.0,
+          "run_start_index": 398
+        },
+        "3": {
+          "fire_index": 617,
+          "fire_time": "2004-02-16T17:22:39",
+          "fired": true,
+          "lead_time_hours": 61.0,
+          "lead_time_seconds": 219600.0,
+          "run_start_index": 615
+        },
+        "5": {
+          "fire_index": 633,
+          "fire_time": "2004-02-16T20:02:39",
+          "fired": true,
+          "lead_time_hours": 58.33,
+          "lead_time_seconds": 210000.0,
+          "run_start_index": 629
+        }
+      },
+      "threshold_rule": "healthy_p99"
+    },
+    "spc": {
+      "healthy_fpr": 0.09666666666666666,
+      "k_consecutive_lead_time": {
+        "1": {
+          "fire_index": 403,
+          "fire_time": "2004-02-15T05:42:39",
+          "fired": true,
+          "lead_time_hours": 96.67,
+          "lead_time_seconds": 348000.0,
+          "run_start_index": 403
+        },
+        "3": {
+          "fire_index": 410,
+          "fire_time": "2004-02-15T06:52:39",
+          "fired": true,
+          "lead_time_hours": 95.5,
+          "lead_time_seconds": 343800.0,
+          "run_start_index": 408
+        },
+        "5": {
+          "fire_index": 512,
+          "fire_time": "2004-02-15T23:52:39",
+          "fired": true,
+          "lead_time_hours": 78.5,
+          "lead_time_seconds": 282600.0,
+          "run_start_index": 508
+        }
+      }
+    },
+    "threshold": {
+      "healthy_fpr": 0.0,
+      "k_consecutive_lead_time": {
+        "1": {
+          "fire_index": 538,
+          "fire_time": "2004-02-16T04:12:39",
+          "fired": true,
+          "lead_time_hours": 74.17,
+          "lead_time_seconds": 267000.0,
+          "run_start_index": 538
+        },
+        "3": {
+          "fire_index": 550,
+          "fire_time": "2004-02-16T06:12:39",
+          "fired": true,
+          "lead_time_hours": 72.17,
+          "lead_time_seconds": 259800.0,
+          "run_start_index": 548
+        },
+        "5": {
+          "fire_index": 557,
+          "fire_time": "2004-02-16T07:22:39",
+          "fired": true,
+          "lead_time_hours": 71.0,
+          "lead_time_seconds": 255600.0,
+          "run_start_index": 553
+        }
+      }
+    }
+  },
+  "f1_anchor_candidates_hours": [
+    8.19,
+    16.38,
+    32.77
+  ],
+  "failure_time": "2004-02-19T06:22:39",
+  "frozen_baseline": {
+    "control_limits": {
+      "cl": 0.077255648,
+      "k": 3,
+      "lcl": 0.074026387,
+      "mu": 0.077255648,
+      "sigma": 0.00107642,
+      "ucl": 0.080484909
+    },
+    "threshold": {
+      "m": 8,
+      "max": 0.085867012,
+      "min": 0.068644285
+    }
+  },
+  "headline_ml": "isolation_forest",
+  "headline_note": "Honest tradeoff (NOT 'ML wins'): (1) THRESHOLD detects latest at first-touch (K=1, 74.17h) but has 0% healthy FPR and is K-robust -- once RMS crosses it stays crossed, so persistence only nudges it (idx 538->550->557). (2) SPC detects mid-to-early but at a noisy ~9.7% healthy FPR. (3) ML is 'earliest' ONLY on first-touch (K=1, 97.5h) and ONLY via a single reverting score spike at idx 398 (idx 400 is already back below the threshold); it COLLAPSES to LAST under persistence (K=3 -> ~61h, idx 617) and FLIPS to latest/vanishing under the healthy_max rule (K=1 idx 761; K>=3 never fires). This generalizes past the deployed IF model: ALL THREE multivariate candidates lose their K=1 earliness under persistence -- OCSVM 105h@353 -> 46.5h@704 (becomes LATEST), Mahalanobis 105h@353 -> 74.83h@534 (merely CONVERGES to the threshold's own idx~538 detection region, not earlier), IF 97.5h@398 -> 61h@617. None buys a robust earlier detection. Root cause: the healthy anomaly-score max (0.2112) exceeds 99.12% of all degradation scores -- the healthy and degradation score distributions overlap -- so ML's apparent earliness is threshold-placement luck on noise, not separable signal. On this RMS-dominated bearing signal, multivariate ML buys no robust earlier detection; the pre-frozen RMS threshold is the most defensible detector.",
+  "healthy_window_end_index": 299,
+  "k_set": [
+    1,
+    3,
+    5
+  ],
+  "ml_threshold_rule": "healthy_p99",
+  "ml_threshold_rule_sensitivity": {
+    "healthy_max": {
+      "healthy_fpr": 0.0,
+      "k_consecutive_lead_time": {
+        "1": {
+          "fire_index": 761,
+          "fire_time": "2004-02-17T17:22:39",
+          "fired": true,
+          "lead_time_hours": 37.0,
+          "lead_time_seconds": 133200.0,
+          "run_start_index": 761
+        },
+        "3": {
+          "fire_index": null,
+          "fire_time": null,
+          "fired": false,
+          "lead_time_hours": null,
+          "lead_time_seconds": null,
+          "run_start_index": null
+        },
+        "5": {
+          "fire_index": null,
+          "fire_time": null,
+          "fired": false,
+          "lead_time_hours": null,
+          "lead_time_seconds": null,
+          "run_start_index": null
+        }
+      },
+      "ml_threshold": 0.21115665035291997
+    },
+    "healthy_p99": {
+      "healthy_fpr": 0.01,
+      "k_consecutive_lead_time": {
+        "1": {
+          "fire_index": 398,
+          "fire_time": "2004-02-15T04:52:39",
+          "fired": true,
+          "lead_time_hours": 97.5,
+          "lead_time_seconds": 351000.0,
+          "run_start_index": 398
+        },
+        "3": {
+          "fire_index": 617,
+          "fire_time": "2004-02-16T17:22:39",
+          "fired": true,
+          "lead_time_hours": 61.0,
+          "lead_time_seconds": 219600.0,
+          "run_start_index": 615
+        },
+        "5": {
+          "fire_index": 633,
+          "fire_time": "2004-02-16T20:02:39",
+          "fired": true,
+          "lead_time_hours": 58.33,
+          "lead_time_seconds": 210000.0,
+          "run_start_index": 629
+        }
+      },
+      "ml_threshold": 0.07722681440026884
+    },
+    "note": "OPPOSITE verdicts from the SAME ML model: under healthy_p99 the ML fires 'early' (K=1 idx 398) only because a single reverting score spike clips the low p99 threshold; under healthy_max it fires very late (K=1 idx 761) and vanishes entirely under persistence (K>=3). Threshold/SPC have no such rule-sensitivity. healthy_p99 stays the pre-committed PRIMARY rule; healthy_max is the comparison, not a swap."
+  },
+  "ml_tuning_candidates": {
+    "elliptic_envelope_mahalanobis": {
+      "f1_by_p_hours": {
+        "16.38": {
+          "f1": 0.355475763016158,
+          "precision": 0.21615720524017468,
+          "recall": 1.0
+        },
+        "32.77": {
+          "f1": 0.6015267175572518,
+          "precision": 0.43013100436681223,
+          "recall": 1.0
+        },
+        "8.19": {
+          "f1": 0.1968503937007874,
+          "precision": 0.1091703056768559,
+          "recall": 1.0
+        }
+      },
+      "frozen_threshold": 19.506454620622613,
+      "healthy_fpr": 0.01,
+      "k_consecutive_lead_time": {
+        "1": {
+          "fire_index": 353,
+          "fire_time": "2004-02-14T21:22:39",
+          "fired": true,
+          "lead_time_hours": 105.0,
+          "lead_time_seconds": 378000.0,
+          "run_start_index": 353
+        },
+        "3": {
+          "fire_index": 534,
+          "fire_time": "2004-02-16T03:32:39",
+          "fired": true,
+          "lead_time_hours": 74.83,
+          "lead_time_seconds": 269400.0,
+          "run_start_index": 532
+        },
+        "5": {
+          "fire_index": 536,
+          "fire_time": "2004-02-16T03:52:39",
+          "fired": true,
+          "lead_time_hours": 74.5,
+          "lead_time_seconds": 268200.0,
+          "run_start_index": 532
+        }
+      },
+      "threshold_rule": "healthy_p99"
+    },
+    "isolation_forest": {
+      "f1_by_p_hours": {
+        "16.38": {
+          "f1": 0.4008714596949891,
+          "precision": 0.25555555555555554,
+          "recall": 0.9292929292929293
+        },
+        "32.77": {
+          "f1": 0.6822262118491922,
+          "precision": 0.5277777777777778,
+          "recall": 0.9644670050761421
+        },
+        "8.19": {
+          "f1": 0.22439024390243903,
+          "precision": 0.12777777777777777,
+          "recall": 0.92
+        }
+      },
+      "frozen_threshold": 0.07722681440026884,
+      "healthy_fpr": 0.01,
+      "k_consecutive_lead_time": {
+        "1": {
+          "fire_index": 398,
+          "fire_time": "2004-02-15T04:52:39",
+          "fired": true,
+          "lead_time_hours": 97.5,
+          "lead_time_seconds": 351000.0,
+          "run_start_index": 398
+        },
+        "3": {
+          "fire_index": 617,
+          "fire_time": "2004-02-16T17:22:39",
+          "fired": true,
+          "lead_time_hours": 61.0,
+          "lead_time_seconds": 219600.0,
+          "run_start_index": 615
+        },
+        "5": {
+          "fire_index": 633,
+          "fire_time": "2004-02-16T20:02:39",
+          "fired": true,
+          "lead_time_hours": 58.33,
+          "lead_time_seconds": 210000.0,
+          "run_start_index": 629
+        }
+      },
+      "threshold_rule": "healthy_p99"
+    },
+    "one_class_svm": {
+      "f1_by_p_hours": {
+        "16.38": {
+          "f1": 0.37499999999999994,
+          "precision": 0.2857142857142857,
+          "recall": 0.5454545454545454
+        },
+        "32.77": {
+          "f1": 0.5803108808290156,
+          "precision": 0.5925925925925926,
+          "recall": 0.5685279187817259
+        },
+        "8.19": {
+          "f1": 0.2510460251046025,
+          "precision": 0.15873015873015872,
+          "recall": 0.6
+        }
+      },
+      "frozen_threshold": 0.2534943693188621,
+      "healthy_fpr": 0.01,
+      "k_consecutive_lead_time": {
+        "1": {
+          "fire_index": 353,
+          "fire_time": "2004-02-14T21:22:39",
+          "fired": true,
+          "lead_time_hours": 105.0,
+          "lead_time_seconds": 378000.0,
+          "run_start_index": 353
+        },
+        "3": {
+          "fire_index": 704,
+          "fire_time": "2004-02-17T07:52:39",
+          "fired": true,
+          "lead_time_hours": 46.5,
+          "lead_time_seconds": 167400.0,
+          "run_start_index": 702
+        },
+        "5": {
+          "fire_index": 706,
+          "fire_time": "2004-02-17T08:12:39",
+          "fired": true,
+          "lead_time_hours": 46.17,
+          "lead_time_seconds": 166200.0,
+          "run_start_index": 702
+        }
+      },
+      "threshold_rule": "healthy_p99"
+    }
+  },
+  "n_rows": 984,
+  "primary_finding": "On this RMS-dominated bearing signal, multivariate ML buys no robust earlier detection; the pre-frozen RMS threshold is the most defensible detector.",
+  "ranking_by_k_lead_time_hours": {
+    "1": [
+      [
+        "ml",
+        97.5
+      ],
+      [
+        "spc",
+        96.67
+      ],
+      [
+        "threshold",
+        74.17
+      ]
+    ],
+    "3": [
+      [
+        "spc",
+        95.5
+      ],
+      [
+        "threshold",
+        72.17
+      ],
+      [
+        "ml",
+        61.0
+      ]
+    ],
+    "5": [
+      [
+        "spc",
+        78.5
+      ],
+      [
+        "threshold",
+        71.0
+      ],
+      [
+        "ml",
+        58.33
+      ]
+    ]
+  },
+  "root_cause_score_overlap": {
+    "first_degradation_index_exceeding_healthy_max": 761,
+    "frac_degradation_scores_below_healthy_max": 0.9912,
+    "healthy_anomaly_score_max": 0.21115665035291997,
+    "n_degradation_scores": 684,
+    "n_degradation_scores_at_or_above_healthy_max": 6,
+    "n_degradation_scores_below_healthy_max": 678,
+    "note": "The healthy anomaly-score max (0.2112) exceeds 99.12% of ALL degradation-region scores; only 6 of 684 degradation snapshots ever reach it, the first at idx 761. The healthy and degradation score distributions OVERLAP, so any ML 'earliness' is threshold-placement luck on noise, not separable signal."
+  },
+  "secondary_f1_time_anchor": {
+    "by_detector": {
+      "ml": {
+        "16.38": {
+          "f1": 0.4008714596949891,
+          "precision": 0.25555555555555554,
+          "recall": 0.9292929292929293
+        },
+        "32.77": {
+          "f1": 0.6822262118491922,
+          "precision": 0.5277777777777778,
+          "recall": 0.9644670050761421
+        },
+        "8.19": {
+          "f1": 0.22439024390243903,
+          "precision": 0.12777777777777777,
+          "recall": 0.92
+        }
+      },
+      "spc": {
+        "16.38": {
+          "f1": 0.3289036544850498,
+          "precision": 0.19681908548707752,
+          "recall": 1.0
+        },
+        "32.77": {
+          "f1": 0.5628571428571428,
+          "precision": 0.39165009940357853,
+          "recall": 1.0
+        },
+        "8.19": {
+          "f1": 0.18083182640144668,
+          "precision": 0.09940357852882704,
+          "recall": 1.0
+        }
+      },
+      "threshold": {
+        "16.38": {
+          "f1": 0.3707865168539326,
+          "precision": 0.22758620689655173,
+          "recall": 1.0
+        },
+        "32.77": {
+          "f1": 0.6234177215189872,
+          "precision": 0.4528735632183908,
+          "recall": 1.0
+        },
+        "8.19": {
+          "f1": 0.20618556701030927,
+          "precision": 0.11494252873563218,
+          "recall": 1.0
+        }
+      }
+    },
+    "note": "SECONDARY metric (RESEARCH already demoted F1). Time-anchor labels the clearly-degrading region (idx ~538+) as 'negative' whenever it falls outside the last P hours before failure, so a CORRECT early threshold detection is counted as a false positive. This makes F1 a weak basis for RANKING detectors; it is kept for completeness only. Lead-time + healthy-FPR are the primary metrics."
+  }
+}

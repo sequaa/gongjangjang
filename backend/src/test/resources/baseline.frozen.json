@@ -7,6 +7,7 @@
     "sigma": 0.00107642,
     "ucl": 0.080484909
   },
+  "failure_time": "2004-02-19T06:22:39",
   "metric": "rms",
   "spec_limits": {
     "k": 6,
