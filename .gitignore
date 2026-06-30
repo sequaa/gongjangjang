@@ -28,3 +28,8 @@ ml/**/__pycache__/
 
 # pytest cache (ml)
 ml/.pytest_cache/
+
+# verify-agent / playwright screenshots
+.playwright-mcp/
+dashboard_initial.png
+*.playwright.png
