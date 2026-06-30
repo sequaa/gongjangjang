@@ -1,23 +1,45 @@
 import { useEffect, useRef, useState } from "react";
 import { BACKEND_HTTP, WS_URL } from "../config";
-import type { SensorReading } from "../types";
+import type { Alarm, AlarmState, Baseline, SensorReading } from "../types";
 import { upsertDevice, deviceList, type DeviceSnapshot } from "../deviceState";
 
 const MAX_POINTS = 120;
+const ALARM_LIMIT = 50;
 
 export interface SocketState {
   readings: SensorReading[];
   devices: DeviceSnapshot[];
+  alarms: Alarm[];
+  baseline: Baseline | null;
   connected: boolean;
+  /** PATCH an alarm's state then sync the local list. */
+  ackResolve: (id: number, state: AlarmState) => Promise<void>;
+}
+
+/** Lowercase the alarm `state` so REST (enum NAME) and WS (token) agree. */
+function normalizeAlarm(raw: Alarm): Alarm {
+  return { ...raw, state: String(raw.state).toLowerCase() as AlarmState };
+}
+
+/** Prepend a freshly-pushed alarm, replacing any existing row with the same id. */
+function mergeAlarm(prev: Alarm[], incoming: Alarm): Alarm[] {
+  const without = prev.filter((a) => a.id !== incoming.id);
+  return [incoming, ...without];
 }
 
 /**
  * Connects to the native WebSocket (RT-01), keeps a rolling window of readings,
  * and reconnects on drop. Seeds the window with one initial DB read on mount.
+ *
+ * <p>Alarms ride the SAME socket: frames with {@code type === "alarm"} are routed
+ * to a separate {@code alarms[]} (newest-first), seeded once from GET /api/alarms.
+ * No polling (D-11②) — push-arrival plus the one-time seed only.
  */
 export function useSensorSocket(): SocketState {
   const [readings, setReadings] = useState<SensorReading[]>([]);
   const [deviceMap, setDeviceMap] = useState<Record<string, DeviceSnapshot>>({});
+  const [alarms, setAlarms] = useState<Alarm[]>([]);
+  const [baseline, setBaseline] = useState<Baseline | null>(null);
   const [connected, setConnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
   const closedByUs = useRef(false);
@@ -36,6 +58,26 @@ export function useSensorSocket(): SocketState {
       });
   }, []);
 
+  // One-time alarm seed (newest-first already from findRecent — do NOT reverse).
+  useEffect(() => {
+    fetch(`${BACKEND_HTTP}/api/alarms?limit=${ALARM_LIMIT}`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((rows: Alarm[]) => setAlarms(rows.map(normalizeAlarm)))
+      .catch(() => {
+        /* seed is best-effort; live alarm frames will fill in */
+      });
+  }, []);
+
+  // One-time baseline fetch: the chart's frozen limits (single source of truth).
+  useEffect(() => {
+    fetch(`${BACKEND_HTTP}/api/baseline`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((b: Baseline | null) => setBaseline(b))
+      .catch(() => {
+        /* no baseline → chart simply omits the threshold lines */
+      });
+  }, []);
+
   useEffect(() => {
     closedByUs.current = false;
     let reconnectTimer: ReturnType<typeof setTimeout>;
@@ -47,9 +89,15 @@ export function useSensorSocket(): SocketState {
       ws.onopen = () => setConnected(true);
       ws.onmessage = (ev) => {
         try {
-          const reading: SensorReading = JSON.parse(ev.data);
-          setReadings((prev) => [...prev, reading].slice(-MAX_POINTS));
-          setDeviceMap((prev) => upsertDevice(prev, reading));
+          const frame = JSON.parse(ev.data);
+          if (frame?.type === "alarm") {
+            const alarm = normalizeAlarm(frame as Alarm);
+            setAlarms((prev) => mergeAlarm(prev, alarm).slice(0, ALARM_LIMIT));
+          } else {
+            const reading = frame as SensorReading;
+            setReadings((prev) => [...prev, reading].slice(-MAX_POINTS));
+            setDeviceMap((prev) => upsertDevice(prev, reading));
+          }
         } catch {
           /* ignore non-JSON frames */
         }
@@ -69,5 +117,23 @@ export function useSensorSocket(): SocketState {
     };
   }, []);
 
-  return { readings, devices: deviceList(deviceMap), connected };
+  const ackResolve = async (id: number, state: AlarmState): Promise<void> => {
+    const res = await fetch(`${BACKEND_HTTP}/api/alarms/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ state }),
+    });
+    if (!res.ok) return;
+    const updated = normalizeAlarm((await res.json()) as Alarm);
+    setAlarms((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
+  };
+
+  return {
+    readings,
+    devices: deviceList(deviceMap),
+    alarms,
+    baseline,
+    connected,
+    ackResolve,
+  };
 }

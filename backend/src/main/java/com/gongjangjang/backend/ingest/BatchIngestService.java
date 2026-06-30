@@ -1,5 +1,6 @@
 package com.gongjangjang.backend.ingest;
 
+import com.gongjangjang.backend.signal.SignalEvaluationConsumer;
 import com.gongjangjang.backend.websocket.SensorWebSocketHandler;
 import java.util.concurrent.LinkedBlockingDeque;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -35,11 +36,14 @@ public class BatchIngestService {
 
     private final SensorWebSocketHandler broadcaster;
     private final LinkedBlockingDeque<MessageAckPair> buffer;
+    private final SignalEvaluationConsumer signalConsumer;
 
     public BatchIngestService(SensorWebSocketHandler broadcaster,
-                               LinkedBlockingDeque<MessageAckPair> buffer) {
+                               LinkedBlockingDeque<MessageAckPair> buffer,
+                               SignalEvaluationConsumer signalConsumer) {
         this.broadcaster = broadcaster;
         this.buffer = buffer;
+        this.signalConsumer = signalConsumer;
     }
 
     /**
@@ -50,5 +54,10 @@ public class BatchIngestService {
     public void accept(SensorReading reading, Runnable ack) {
         broadcaster.broadcast(reading);
         buffer.offer(new MessageAckPair(reading, ack));
+        // Ingestion-decoupled signal tap (RESEARCH Pattern 2 / Pitfall 4): AFTER the
+        // broadcast + buffer.offer, hand the reading to the signal consumer with a
+        // non-blocking offer. If its queue is full, only the SIGNAL is dropped — the
+        // INSERT/broadcast hot path above is byte-for-byte unaffected (no inline DB).
+        signalConsumer.offer(reading);
     }
 }

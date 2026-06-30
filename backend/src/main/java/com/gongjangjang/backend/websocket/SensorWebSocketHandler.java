@@ -53,6 +53,8 @@ public class SensorWebSocketHandler extends TextWebSocketHandler {
     }
 
     public void broadcast(SensorReading reading) {
+        // Reading frame keeps its existing shape (no "type" field) — the frontend
+        // branches on the presence of "type" to tell readings from alarms apart.
         final String json;
         try {
             json = objectMapper.writeValueAsString(reading); // Jackson 3: unchecked
@@ -60,6 +62,26 @@ public class SensorWebSocketHandler extends TextWebSocketHandler {
             log.warn("failed to serialize reading for broadcast", e);
             return;
         }
+        send(json);
+    }
+
+    /**
+     * Pushes an alarm frame to every open session. The supplied object MUST carry
+     * a distinguishing {@code type:"alarm"} field so clients can branch on it
+     * (reading frames have no {@code type}).
+     */
+    public void broadcastAlarm(Object alarmFrame) {
+        final String json;
+        try {
+            json = objectMapper.writeValueAsString(alarmFrame); // Jackson 3: unchecked
+        } catch (JacksonException e) {
+            log.warn("failed to serialize alarm for broadcast", e);
+            return;
+        }
+        send(json);
+    }
+
+    private void send(String json) {
         TextMessage frame = new TextMessage(json);
         for (WebSocketSession session : sessions) {
             if (session.isOpen()) {
