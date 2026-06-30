@@ -29,6 +29,17 @@ export interface Alarm {
   createdAt?: string | null;
 }
 
+// One persisted SPC trajectory point (03-02). Shared shape between the
+// GET /api/signals seed rows and the live WS `type:"signal"` frames — both carry
+// signalType ∈ {cpk|control_limit|we_rule}, a value, and its occurrence instant.
+export interface SpcSignal {
+  deviceId: string;
+  metric: string;
+  signalType: string;
+  value: number;
+  occurredAt: string;
+}
+
 // Frozen baseline limits from GET /api/baseline (single source of truth, D-11).
 export interface Baseline {
   thresholdMin: number;

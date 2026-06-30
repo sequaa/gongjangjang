@@ -104,6 +104,25 @@ public class AlarmRepository {
     }
 
     /**
+     * Open-alarm dedup keyed additionally by {@code rule}. Used by the SPC path
+     * (03-02): each Western-Electric rule type gets a SINGLE open alarm whose
+     * first_occurred_at is its FIRST fire (D-04 lead-time anchor); subsequent
+     * fires of the same rule while it stays open create no new rows. Returns the
+     * open alarm for the (device, metric, detector, rule) tuple, else {@code null}.
+     */
+    public Alarm findOpenAlarm(String deviceId, String metric, String detector, String rule) {
+        List<Alarm> open = jdbcTemplate.query(
+                "SELECT * FROM alarms WHERE device_id = ? AND metric = ? AND detector = ? "
+                        + "AND rule = ? AND state <> 'resolved' ORDER BY id DESC LIMIT 1",
+                ROW_MAPPER,
+                deviceId,
+                metric,
+                detector,
+                rule);
+        return open.isEmpty() ? null : open.get(0);
+    }
+
+    /**
      * Transitions an alarm to {@code newState}, stamping acknowledged_at /
      * resolved_at as appropriate. Returns the updated row.
      */

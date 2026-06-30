@@ -13,20 +13,27 @@ import { useSensorSocket } from "./hooks/useSensorSocket";
 import { StatusGrid } from "./components/StatusGrid";
 import { ValueTiles } from "./components/ValueTiles";
 import { AlarmPanel } from "./components/AlarmPanel";
+import {
+  mergeSpcChartData,
+  spcCpkAxisAndLine,
+  spcReferenceLines,
+  spcWeMarkers,
+} from "./components/SignalOverlay";
 
 export default function App() {
-  const { readings, devices, alarms, baseline, connected, ackResolve } = useSensorSocket();
+  const { readings, devices, alarms, spcCpk, baseline, connected, ackResolve } =
+    useSensorSocket();
 
   // Chart a single device's series so the line stays coherent across N devices.
   const focusId = devices[0]?.deviceId;
-  const data = readings
-    .filter((r) => r.deviceId === focusId)
-    .map((r) => ({ t: new Date(r.recordedAt).toLocaleTimeString(), value: r.value }));
+  // ONE shared time axis (D-11①): readings + the Cpk trajectory merged on time.
+  const data = mergeSpcChartData(readings, spcCpk, focusId);
 
-  // Vertical markers at alarm occurrence points on the focused device's series.
+  // Generic (non-SPC) alarm ticks only — SPC WE alarms get distinct markers via
+  // spcWeMarkers so threshold-vs-SPC separation stays visible (no double lines).
   // Categorical x-axis: a non-matching time simply won't render (safe).
   const alarmTicks = alarms
-    .filter((a) => a.deviceId === focusId)
+    .filter((a) => a.deviceId === focusId && a.detector !== "spc")
     .map((a) => new Date(a.firstOccurredAt).toLocaleTimeString());
 
   return (
@@ -76,9 +83,22 @@ export default function App() {
               {alarmTicks.map((x, i) => (
                 <ReferenceLine key={`alarm-${i}`} x={x} stroke="#c80" strokeDasharray="2 2" />
               ))}
-              <Line type="monotone" dataKey="value" stroke="#2563eb" dot={false} isAnimationActive={false} />
+              {/* 03-02 SPC overlay — frozen UCL/LCL (baseline), WE-rule fire
+                  markers (spc alarms), and the descending Cpk curve on a shared
+                  time axis. 03-03 adds the ML score series the same way. */}
+              {spcReferenceLines(baseline)}
+              {spcWeMarkers(alarms, focusId)}
+              {spcCpkAxisAndLine()}
+              {/* connectNulls: the merged axis injects cpk-only rows (value
+                  undefined) between readings — bridge them so the sensor line
+                  stays continuous. */}
+              <Line type="monotone" dataKey="value" stroke="#2563eb" dot={false} connectNulls isAnimationActive={false} />
             </LineChart>
           </ResponsiveContainer>
+        </div>
+        <div style={{ display: "flex", gap: 16, flexWrap: "wrap", fontSize: 11, color: "#555", marginTop: 6 }}>
+          <span style={{ color: "#a00" }}>━ threshold min/max</span>
+          <span style={{ color: "#7c3aed" }}>┅ UCL/LCL ±3σ · │ WE-rule fire · Cpk (right axis)</span>
         </div>
       </Section>
 
