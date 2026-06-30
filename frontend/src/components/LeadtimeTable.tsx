@@ -58,14 +58,28 @@ export function LeadtimeTable() {
     );
   }
 
-  // Earliest detector = largest lead time (fires furthest before failure).
-  const earliest = Math.max(...data.rows.map((r) => r.leadTimeSeconds));
-
   return (
     <div style={{ fontSize: 13 }}>
       <div style={{ color: "#666", marginBottom: 6 }}>
         고장 시점(앵커): {new Date(data.failureTime).toLocaleString()} · {data.device} / {data.metric}
         <span style={{ color: "#999", marginLeft: 8 }}>(DB 쿼리 — 실시간 차트와 별개 소스)</span>
+      </div>
+      <div
+        style={{
+          color: "#92400e",
+          background: "#fffbeb",
+          border: "1px solid #fde68a",
+          borderRadius: 6,
+          padding: "6px 8px",
+          marginBottom: 8,
+          fontSize: 12,
+          lineHeight: 1.5,
+        }}
+      >
+        ⚠ 예시용(first-touch): 이 표는 detector별 <b>최초 1회 발생</b>이라 healthy 구간 오발화·단발
+        노이즈 스파이크를 거르지 않는다(예: ML/SPC가 healthy 구간에서 한 번 튀면 리드타임이 부풀려짐).
+        방어 가능한 헤드라인은 오프라인 <code>ml/eval/run_eval.py</code> 의 <b>K-지속 민감도 분석</b>이며,
+        거기선 지속성을 요구하면 ML이 무너지고 <b>측정 전 동결한 RMS 임계가 0% FPR로 가장 방어 가능</b>하다.
       </div>
       <table style={{ borderCollapse: "collapse", width: "100%", maxWidth: 560 }}>
         <thead>
@@ -76,28 +90,15 @@ export function LeadtimeTable() {
           </tr>
         </thead>
         <tbody>
-          {data.rows.map((r) => {
-            const isEarliest = r.leadTimeSeconds === earliest;
-            return (
-              <tr
-                key={r.detector}
-                style={{
-                  borderBottom: "1px solid #eee",
-                  background: isEarliest ? "#ecfdf5" : undefined,
-                  fontWeight: isEarliest ? 700 : 400,
-                }}
-              >
-                <td style={{ padding: "6px 8px" }}>
-                  {r.detector}
-                  {isEarliest && <span style={{ color: "#059669", marginLeft: 6 }}>← 가장 빠름</span>}
-                </td>
-                <td style={{ padding: "6px 8px", color: "#666" }}>
-                  {new Date(r.firstOccurredAt).toLocaleString()}
-                </td>
-                <td style={{ padding: "6px 8px" }}>{fmtLead(r.leadTimeSeconds)}</td>
-              </tr>
-            );
-          })}
+          {data.rows.map((r) => (
+            <tr key={r.detector} style={{ borderBottom: "1px solid #eee" }}>
+              <td style={{ padding: "6px 8px" }}>{r.detector}</td>
+              <td style={{ padding: "6px 8px", color: "#666" }}>
+                {new Date(r.firstOccurredAt).toLocaleString()}
+              </td>
+              <td style={{ padding: "6px 8px" }}>{fmtLead(r.leadTimeSeconds)}</td>
+            </tr>
+          ))}
         </tbody>
       </table>
     </div>
