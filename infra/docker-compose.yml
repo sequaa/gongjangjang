@@ -48,14 +48,53 @@ services:
       MQTT_BROKER_URL: tcp://mosquitto:1883
       # Ingest mode toggle: `INGEST_MODE=naive docker compose up -d backend` for kill-9 before demo.
       INGEST_MODE: ${INGEST_MODE:-batch}
+      # Score against the in-network FastAPI ml service over compose DNS (D-17),
+      # replacing the host-hybrid localhost:8000. MlScoringClient reads
+      # ml.service.url=${ML_SERVICE_URL:...}.
+      ML_SERVICE_URL: http://ml:8000
+    volumes:
+      # signal.baseline.path=../data/nasa/baseline.frozen.json resolves from
+      # WORKDIR /app to /data/nasa/baseline.frozen.json; FrozenBaseline reads it at
+      # startup (Phase 3 signal config). Host-hybrid runs read it from the repo; in
+      # the full-docker stack (D-17) it must be mounted or the backend fails to boot.
+      - ../data/nasa:/data/nasa:ro
     ports:
       # Host 18080 -> container 8080 (host 8080 may be taken by other projects).
       - "18080:8080"
+    healthcheck:
+      # eclipse-temurin:17-jre ships wget (verified via `docker run` discovery) —
+      # probe actuator health. start_period covers JVM cold start.
+      # NOTE (04-03 carry-forward): SecurityFilterChain MUST keep /actuator/health
+      # (and the /ws/sensors handshake) permitAll or this healthcheck breaks.
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8080/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
     depends_on:
       mosquitto:
         condition: service_healthy
       postgres:
         condition: service_healthy
+      # An ml start failure blocks the whole stack (acceptable for a one-click demo).
+      ml:
+        condition: service_healthy
+
+  # FastAPI online anomaly-scoring service (03-03 / D-12). NO host `ports:` mapping —
+  # /score is unauthenticated (T-04-02); reachable only on the internal compose
+  # network via service DNS http://ml:8000 (backend ML_SERVICE_URL).
+  ml:
+    build:
+      context: ../ml
+    restart: unless-stopped
+    healthcheck:
+      # python:3.13-slim has neither wget nor curl; python is guaranteed. Open
+      # /health via urllib and exit non-zero on failure.
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health').status==200 else 1)\" || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
   simulator:
     build:
@@ -65,8 +104,15 @@ services:
       MQTT_BROKER_URL: mqtt://mosquitto:1883
       DEVICE_COUNT: "5"
       METRIC: temperature
-      PUBLISH_INTERVAL_MS: "1000"
+      # SIGNAL_SOURCE=nasa replays data/nasa/features.csv (one device-001, metric rms);
+      # PUBLISH_INTERVAL_MS=100 replays ~984 snapshots in ~98s (vs ~16min at 1000ms).
+      SIGNAL_SOURCE: ${SIGNAL_SOURCE:-synthetic}
+      PUBLISH_INTERVAL_MS: ${PUBLISH_INTERVAL_MS:-1000}
       ANOMALY_DEVICES: "1"
+    volumes:
+      # loadFeatures resolves .../../../data/nasa/features.csv = /data/nasa/features.csv
+      # in the container; without this mount SIGNAL_SOURCE=nasa exits ENOENT (Pitfall 4).
+      - ../data/nasa:/data/nasa:ro
     depends_on:
       mosquitto:
         condition: service_healthy
@@ -77,5 +123,30 @@ services:
     restart: unless-stopped
     ports:
       - "5173:80"
+    healthcheck:
+      # nginx:alpine ships busybox wget. Use 127.0.0.1 (not localhost): nginx binds
+      # IPv4 0.0.0.0:80, but `localhost` resolves to IPv6 ::1 first → refused.
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:80/ || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
     depends_on:
       - backend
+
+  # Opt-in k6 load tool (D-09). profiles: ["load"] keeps it OUT of the default up;
+  # run with `docker compose --profile load run --rm k6 run /scripts/ws-load.js`.
+  # In-network targets are set via `environment:` (NOT -e flags in command:) — k6
+  # reads system env into __ENV for `k6 run`, and env survives the `compose run`
+  # command override, giving one source of truth for both `up` and `run`.
+  k6:
+    image: grafana/k6:latest
+    profiles: ["load"]
+    volumes:
+      - ../bench/k6:/scripts:ro
+    environment:
+      WS_URL: ws://backend:8080/ws/sensors
+      BASE_URL: http://backend:8080
+    command: ["run", "/scripts/ws-load.js"]
+    depends_on:
+      backend:
+        condition: service_healthy

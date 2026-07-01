@@ -5,6 +5,9 @@
 import http from 'k6/http';
 import { check } from 'k6';
 
+// In-network compose target via `environment: BASE_URL`; host-run default preserved.
+const BASE_URL = __ENV.BASE_URL ?? 'http://localhost:18080';
+
 export const options = {
   scenarios: {
     query_load: {
@@ -20,6 +23,6 @@ export const options = {
 };
 
 export default function () {
-  const res = http.get('http://localhost:18080/api/readings?limit=50');
+  const res = http.get(`${BASE_URL}/api/readings?limit=50`);
   check(res, { 'status 200': (r) => r.status === 200 });
 }

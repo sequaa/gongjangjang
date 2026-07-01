@@ -1,0 +1,11 @@
+# Belt-and-suspenders alongside the narrow COPY in the Dockerfile: keep host
+# artifacts out of the build context so they can never be copied into the image.
+.venv/
+__pycache__/
+**/__pycache__/
+.pytest_cache/
+eval/
+tests/
+conftest.py
+train.py
+*.pyc
