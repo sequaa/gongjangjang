@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { BACKEND_HTTP, WS_URL } from "../config";
 import type { Alarm, AlarmState, Baseline, MlSignal, SensorReading, SpcSignal } from "../types";
 import { upsertDevice, deviceList, type DeviceSnapshot } from "../deviceState";
+import { authFetch } from "../auth";
 
 const MAX_POINTS = 120;
 const ALARM_LIMIT = 50;
@@ -52,7 +53,7 @@ export function useSensorSocket(): SocketState {
 
   // Initial load: one DB read (RT-01), seeds both the chart and per-device state.
   useEffect(() => {
-    fetch(`${BACKEND_HTTP}/api/readings?limit=${MAX_POINTS}`)
+    authFetch(`${BACKEND_HTTP}/api/readings?limit=${MAX_POINTS}`)
       .then((r) => (r.ok ? r.json() : []))
       .then((rows: SensorReading[]) => {
         const ordered = rows.slice().reverse();
@@ -66,7 +67,7 @@ export function useSensorSocket(): SocketState {
 
   // One-time alarm seed (newest-first already from findRecent — do NOT reverse).
   useEffect(() => {
-    fetch(`${BACKEND_HTTP}/api/alarms?limit=${ALARM_LIMIT}`)
+    authFetch(`${BACKEND_HTTP}/api/alarms?limit=${ALARM_LIMIT}`)
       .then((r) => (r.ok ? r.json() : []))
       .then((rows: Alarm[]) => setAlarms(rows.map(normalizeAlarm)))
       .catch(() => {
@@ -78,7 +79,7 @@ export function useSensorSocket(): SocketState {
   // The endpoint has no signalType filter — pull the spc series and keep the cpk
   // points (ASC from findByDetector). Live cpk points then arrive via WS push.
   useEffect(() => {
-    fetch(`${BACKEND_HTTP}/api/signals?detector=spc`)
+    authFetch(`${BACKEND_HTTP}/api/signals?detector=spc`)
       .then((r) => (r.ok ? r.json() : []))
       .then((rows: SpcSignal[]) => {
         const cpk = rows.filter((s) => s.signalType === "cpk").slice(-MAX_POINTS);
@@ -93,7 +94,7 @@ export function useSensorSocket(): SocketState {
   // WS push. Mirror the SPC seed: pull the ml series and keep the anomaly_score
   // points. Live anomaly_score points then arrive via WS push (no polling).
   useEffect(() => {
-    fetch(`${BACKEND_HTTP}/api/signals?detector=ml`)
+    authFetch(`${BACKEND_HTTP}/api/signals?detector=ml`)
       .then((r) => (r.ok ? r.json() : []))
       .then((rows: MlSignal[]) => {
         const scores = rows
@@ -108,7 +109,7 @@ export function useSensorSocket(): SocketState {
 
   // One-time baseline fetch: the chart's frozen limits (single source of truth).
   useEffect(() => {
-    fetch(`${BACKEND_HTTP}/api/baseline`)
+    authFetch(`${BACKEND_HTTP}/api/baseline`)
       .then((r) => (r.ok ? r.json() : null))
       .then((b: Baseline | null) => setBaseline(b))
       .catch(() => {
@@ -168,7 +169,7 @@ export function useSensorSocket(): SocketState {
   }, []);
 
   const ackResolve = async (id: number, state: AlarmState): Promise<void> => {
-    const res = await fetch(`${BACKEND_HTTP}/api/alarms/${id}`, {
+    const res = await authFetch(`${BACKEND_HTTP}/api/alarms/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ state }),

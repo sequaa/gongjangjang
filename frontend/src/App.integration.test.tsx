@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, screen, act } from "@testing-library/react";
 import App from "./App";
+import { setToken } from "./auth";
 
 // The plan's RT-02 automated criterion: a mock WebSocket message must update the
 // grid/tiles per device. This exercises the wire useSensorSocket -> upsertDevice
@@ -35,6 +36,8 @@ function frame(deviceId: string, value: number, ms: number): string {
 beforeEach(() => {
   MockWebSocket.instances = [];
   vi.stubGlobal("WebSocket", MockWebSocket);
+  // Seed a token so the auth gate passes and the dashboard renders.
+  setToken("test-token");
   // initial-load fetch: resolve empty so the live socket is the only source
   vi.stubGlobal(
     "fetch",
@@ -44,6 +47,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  localStorage.clear();
 });
 
 describe("App live wiring (RT-02 mock-WebSocket → grid/tiles)", () => {

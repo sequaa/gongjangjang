@@ -8,7 +8,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { useSensorSocket } from "./hooks/useSensorSocket";
 import { useReplaySocket } from "./hooks/useReplaySocket";
 import type { DemoSnapshot } from "./types";
@@ -25,6 +25,8 @@ import {
   spcReferenceLines,
   spcWeMarkers,
 } from "./components/SignalOverlay";
+import { LoginPage } from "./components/LoginPage";
+import { getToken, clearToken } from "./auth";
 
 // VITE_DEMO_MODE is a build-time constant: Vite statically replaces it and
 // dead-code-eliminates the unused branch, so exactly one hook is compiled into
@@ -33,6 +35,9 @@ import {
 const DEMO = import.meta.env.VITE_DEMO_MODE === "true";
 
 export default function App() {
+  // Auth gate: persists across refresh via localStorage. Demo mode bypasses gate (D-09).
+  const [loggedIn, setLoggedIn] = useState(DEMO || getToken() !== null);
+
   const { readings, devices, alarms, spcCpk, mlScore, baseline, connected, ackResolve } =
     // eslint-disable-next-line react-hooks/rules-of-hooks
     DEMO ? useReplaySocket(snapshot as unknown as DemoSnapshot) : useSensorSocket();
@@ -56,9 +61,25 @@ export default function App() {
     .map((a) => new Date(a.firstOccurredAt).getTime())
     .filter((ts) => ts >= windowStart && ts <= windowEnd);
 
+  // Auth gate (live mode only). All hooks are called above unconditionally;
+  // this early return is safe and does not violate rules-of-hooks.
+  if (!DEMO && !loggedIn) {
+    return <LoginPage onLogin={() => setLoggedIn(true)} />;
+  }
+
   return (
     <div style={{ fontFamily: "system-ui, sans-serif", padding: 24, maxWidth: 1000, margin: "0 auto" }}>
-      <h1 style={{ fontSize: 20 }}>설비 센서 실시간 모니터링</h1>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+        <h1 style={{ fontSize: 20, margin: 0 }}>설비 센서 실시간 모니터링</h1>
+        {!DEMO && (
+          <button
+            onClick={() => { clearToken(); setLoggedIn(false); }}
+            style={{ fontSize: 13, padding: "4px 10px" }}
+          >
+            로그아웃
+          </button>
+        )}
+      </div>
       <p style={{ color: connected ? "#0a0" : "#a00", margin: "4px 0 20px" }}>
         ● WebSocket {connected ? "connected" : "disconnected"} · {devices.length} device(s)
       </p>
