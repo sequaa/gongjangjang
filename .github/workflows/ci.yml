@@ -35,16 +35,17 @@ jobs:
       - uses: actions/checkout@v4
       # Third-party action pinned to a full commit SHA (T-04-SC).
       - uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3
-      # ml/ has no pyproject.toml (requirements.txt only) -> `uv run pytest` would
-      # fail with "no project found". Install into the system env, then call pytest.
-      # --break-system-packages: ubuntu-latest's /usr Python is PEP668 externally-managed;
-      # the runner is ephemeral so a system-wide install is safe.
+      # ml/ has no pyproject.toml (requirements.txt only). A --system install hits
+      # the runner's PEP668-managed, non-writable /usr python, so use a uv venv:
+      # `uv pip install` targets the .venv, and we invoke its pytest directly.
       - name: Install deps
         working-directory: ml
-        run: uv pip install --system --break-system-packages -r requirements.txt
+        run: |
+          uv venv
+          uv pip install -r requirements.txt
       - name: Run tests
         working-directory: ml
-        run: pytest tests/ -v
+        run: .venv/bin/pytest tests/ -v
 
   frontend:
     runs-on: ubuntu-latest
