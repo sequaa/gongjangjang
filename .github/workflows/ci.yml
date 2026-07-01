@@ -1,0 +1,86 @@
+name: CI
+
+# Test + build (+ honest lint = tsc type-check / Maven compile) across all four
+# components on every push to main / gsd branches and every pull request (OPS-02, D-15).
+on:
+  push:
+    branches: [main, "gsd/phase-*"]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Cache Maven repository
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('backend/pom.xml') }}
+          restore-keys: ${{ runner.os }}-maven-
+      # `./mvnw -B verify` = Maven compile (backend "lint") + unit tests + the
+      # Testcontainers AlarmPersistenceIT (D-16). ubuntu-latest ships a Docker
+      # daemon, so Testcontainers runs with no Docker-in-Docker setup.
+      - name: Test + build (verify runs Testcontainers IT)
+        working-directory: backend
+        run: ./mvnw -B verify
+
+  ml:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Third-party action pinned to a full commit SHA (T-04-SC).
+      - uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3
+      # ml/ has no pyproject.toml (requirements.txt only) -> `uv run pytest` would
+      # fail with "no project found". Install into the system env, then call pytest.
+      - name: Install deps
+        working-directory: ml
+        run: uv pip install --system -r requirements.txt
+      - name: Run tests
+        working-directory: ml
+        run: pytest tests/ -v
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install
+        working-directory: frontend
+        run: npm ci
+      # `npm run build` = `tsc -b && vite build` -> tsc is the type-check ("lint").
+      - name: Type-check + build
+        working-directory: frontend
+        run: npm run build
+      - name: Unit tests
+        working-directory: frontend
+        run: npm test
+
+  simulator:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: simulator/package-lock.json
+      - name: Install
+        working-directory: simulator
+        run: npm ci
+      # simulator has a tsconfig.json but no `build` script -> tsc --noEmit is the
+      # type-check ("lint").
+      - name: Type-check
+        working-directory: simulator
+        run: npx tsc --noEmit
+      - name: Unit tests
+        working-directory: simulator
+        run: npm test
