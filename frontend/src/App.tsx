@@ -17,14 +17,7 @@ import { StatusGrid } from "./components/StatusGrid";
 import { ValueTiles } from "./components/ValueTiles";
 import { AlarmPanel } from "./components/AlarmPanel";
 import { LeadtimeTable } from "./components/LeadtimeTable";
-import {
-  mergeSpcChartData,
-  mlAnomalyMarkers,
-  mlScoreAxisAndLine,
-  spcCpkAxisAndLine,
-  spcReferenceLines,
-  spcWeMarkers,
-} from "./components/SignalOverlay";
+import { mergeSpcChartData, windowMarkers } from "./components/SignalOverlay";
 import { LoginPage } from "./components/LoginPage";
 import { getToken, clearToken } from "./auth";
 
@@ -33,6 +26,9 @@ import { getToken, clearToken } from "./auth";
 // each bundle. The condition is therefore identical across every render, which
 // preserves the rules-of-hooks invariant (same hook call order every render).
 const DEMO = import.meta.env.VITE_DEMO_MODE === "true";
+
+// Frozen ML anomaly threshold (healthy_p99) from ml/eval/results/ml_threshold.frozen.json
+const ML_ANOMALY_THRESHOLD = 0.07723;
 
 export default function App() {
   // Auth gate: persists across refresh via localStorage. Demo mode bypasses gate (D-09).
@@ -53,13 +49,28 @@ export default function App() {
   const windowStart = data.length > 0 ? data[0].ts : -Infinity;
   const windowEnd = data.length > 0 ? data[data.length - 1].ts : Infinity;
 
-  // Generic (non-SPC, non-ML) alarm ticks only — SPC WE and ML if_anomaly alarms
-  // get distinct markers (spcWeMarkers / mlAnomalyMarkers) so each detector stays
-  // visually separable. Epoch-ms numbers clipped to the data window (D-06).
-  const alarmTicks = alarms
-    .filter((a) => a.deviceId === focusId && a.detector !== "spc" && a.detector !== "ml")
-    .map((a) => new Date(a.firstOccurredAt).getTime())
-    .filter((ts) => ts >= windowStart && ts <= windowEnd);
+  // Each panel owns its detector's fire markers so the three verticals stay
+  // visually separable (D-11①: compare "who fires first" by x position).
+  // Epoch-ms numbers clipped to the data window (D-06).
+  const thresholdMarkers = windowMarkers(
+    alarms,
+    focusId,
+    (a) => a.detector !== "spc" && a.detector !== "ml",
+    windowStart,
+    windowEnd,
+  );
+  const spcMarkers = windowMarkers(alarms, focusId, (a) => a.detector === "spc", windowStart, windowEnd);
+  const mlMarkers = windowMarkers(alarms, focusId, (a) => a.detector === "ml", windowStart, windowEnd);
+
+  // Shared numeric time domain + identical plot geometry across all three panels
+  // so their plot rectangles line up vertically (small multiples). Falls back to
+  // data-driven bounds when empty to avoid an ±Infinity XAxis domain.
+  const xDomain: [number | string, number | string] =
+    data.length > 0 ? [windowStart, windowEnd] : ["dataMin", "dataMax"];
+  const CHART_MARGIN = { top: 8, right: 24, bottom: 0, left: 0 };
+  const Y_WIDTH = 52;
+  const PANEL_H = 140;
+  const captionStyle = { fontSize: 11, color: "#777", margin: "2px 0 0" } as const;
 
   // Auth gate (live mode only). All hooks are called above unconditionally;
   // this early return is safe and does not violate rules-of-hooks.
@@ -93,22 +104,24 @@ export default function App() {
       </Section>
 
       <Section title={`실시간 차트${focusId ? ` — ${focusId}` : ""}`}>
-        <div style={{ width: "100%", height: 320 }}>
+        <p style={{ fontSize: 12, color: "#444", margin: "0 0 8px" }}>
+          세 패널 같은 시간축 — 세로 발화선 x위치로 &apos;누가 먼저 잡나&apos; 비교, 정량 리드타임은 아래 표.
+        </p>
+
+        {/* ① RMS 원값 — frozen threshold band; healthy = inside band (low). */}
+        <div style={{ width: "100%", height: PANEL_H }}>
           <ResponsiveContainer>
-            <LineChart data={data}>
+            <LineChart data={data} margin={CHART_MARGIN}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis type="number" dataKey="ts" domain={["dataMin", "dataMax"]} minTickGap={40} tickFormatter={(v) => new Date(v).toLocaleTimeString()} />
-              <YAxis domain={["auto", "auto"]} />
-              <Tooltip />
-              {/* Frozen threshold limits (D-11①) — single source of truth from
-                  GET /api/baseline; rendered only when the baseline loaded.
-                  03-02 (ucl/lcl) and 03-03 add more ReferenceLines/series here. */}
+              <XAxis type="number" dataKey="ts" domain={xDomain} tick={false} height={22} />
+              <YAxis width={Y_WIDTH} domain={["auto", "auto"]} tick={{ fontSize: 11 }} tickFormatter={(v) => Number(v).toFixed(3)} />
+              <Tooltip labelFormatter={(v) => new Date(v as number).toLocaleTimeString()} />
               {baseline && (
                 <ReferenceLine
                   y={baseline.thresholdMax}
                   stroke="#a00"
                   strokeDasharray="4 4"
-                  label={{ value: "max", position: "right", fontSize: 11, fill: "#a00" }}
+                  label={{ value: "max", position: "insideTopLeft", fontSize: 11, fill: "#a00" }}
                   ifOverflow="extendDomain"
                 />
               )}
@@ -117,35 +130,111 @@ export default function App() {
                   y={baseline.thresholdMin}
                   stroke="#a00"
                   strokeDasharray="4 4"
-                  label={{ value: "min", position: "right", fontSize: 11, fill: "#a00" }}
+                  label={{ value: "min", position: "insideBottomLeft", fontSize: 11, fill: "#a00" }}
                   ifOverflow="extendDomain"
                 />
               )}
-              {alarmTicks.map((x, i) => (
-                <ReferenceLine key={`alarm-${i}`} x={x} stroke="#c80" strokeDasharray="2 2" ifOverflow="hidden" />
+              {thresholdMarkers.map((m) => (
+                <ReferenceLine key={`thr-${m.key}`} x={m.x} stroke="#a00" strokeWidth={1.5} ifOverflow="hidden" />
               ))}
-              {/* 03-02 SPC overlay — frozen UCL/LCL (baseline), WE-rule fire
-                  markers (spc alarms), and the descending Cpk curve on a shared
-                  time axis. 03-03 adds the ML score series the same way. */}
-              {spcReferenceLines(baseline)}
-              {spcWeMarkers(alarms, focusId, windowStart, windowEnd)}
-              {spcCpkAxisAndLine()}
-              {/* 03-03 ML overlay — anomaly_score line on its own right axis plus
-                  if_anomaly fire markers, on the SAME time axis so threshold/SPC/
-                  ML are directly comparable (which detector fires first). */}
-              {mlScoreAxisAndLine()}
-              {mlAnomalyMarkers(alarms, focusId, windowStart, windowEnd)}
-              {/* connectNulls: the merged axis injects cpk-only rows (value
-                  undefined) between readings — bridge them so the sensor line
-                  stays continuous. */}
               <Line type="monotone" dataKey="value" stroke="#2563eb" dot={false} connectNulls isAnimationActive={false} />
             </LineChart>
           </ResponsiveContainer>
         </div>
-        <div style={{ display: "flex", gap: 16, flexWrap: "wrap", fontSize: 11, color: "#555", marginTop: 6 }}>
-          <span style={{ color: "#a00" }}>━ threshold min/max</span>
-          <span style={{ color: "#7c3aed" }}>┅ UCL/LCL ±3σ · │ WE-rule fire · Cpk (right axis)</span>
-          <span style={{ color: "#ea580c" }}>━ ML anomaly score (right axis) · ┊ if_anomaly fire</span>
+        <p style={captionStyle}>
+          ① RMS 원값 · 정상: 임계 밴드 안(낮음) · 이상: 상한 돌파 — 동결 RMS 임계(가장 방어가능)
+        </p>
+
+        {/* ② SPC Cpk — process capability; healthy = high & flat (≥1.33). */}
+        <div style={{ width: "100%", height: PANEL_H }}>
+          <ResponsiveContainer>
+            <LineChart data={data} margin={CHART_MARGIN}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis type="number" dataKey="ts" domain={xDomain} tick={false} height={22} />
+              <YAxis
+                width={Y_WIDTH}
+                domain={[-2, 3]}
+                allowDataOverflow={true}
+                tick={{ fontSize: 11 }}
+                tickFormatter={(v) => Number(v).toFixed(1)}
+              />
+              <Tooltip labelFormatter={(v) => new Date(v as number).toLocaleTimeString()} />
+              {/* Universal Cpk capability conventions (labeled constants). */}
+              <ReferenceLine
+                y={1.33}
+                stroke="#7c3aed"
+                strokeDasharray="6 3"
+                label={{ value: "capable 1.33", position: "insideTopLeft", fontSize: 11, fill: "#7c3aed" }}
+              />
+              <ReferenceLine
+                y={1.0}
+                stroke="#7c3aed"
+                strokeDasharray="6 3"
+                label={{ value: "marginal 1.0", position: "insideBottomLeft", fontSize: 11, fill: "#7c3aed" }}
+              />
+              {spcMarkers.map((m) => (
+                <ReferenceLine key={`spc-${m.key}`} x={m.x} stroke="#7c3aed" strokeWidth={1.5} ifOverflow="hidden" />
+              ))}
+              <Line type="monotone" dataKey="cpk" stroke="#7c3aed" dot={false} connectNulls isAnimationActive={false} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+        <p style={captionStyle}>
+          ② SPC Cpk · 정상: 높고 평평(≥1.33) · 이상: 하락 — 규격 대비 공정능력 저하
+        </p>
+
+        {/* ③ ML 이상점수 — bottom panel carries the shared time labels. */}
+        <div style={{ width: "100%", height: PANEL_H }}>
+          <ResponsiveContainer>
+            <LineChart data={data} margin={CHART_MARGIN}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis
+                type="number"
+                dataKey="ts"
+                domain={xDomain}
+                height={22}
+                minTickGap={40}
+                tick={{ fontSize: 11 }}
+                tickFormatter={(v) => new Date(v as number).toLocaleTimeString()}
+              />
+              <YAxis
+                width={Y_WIDTH}
+                domain={[-0.2, 0.3]}
+                tick={{ fontSize: 11 }}
+                tickFormatter={(v) => Number(v).toFixed(2)}
+              />
+              <Tooltip labelFormatter={(v) => new Date(v as number).toLocaleTimeString()} />
+              {/* Frozen ML anomaly threshold (healthy_p99) — provenance in the
+                  ML_ANOMALY_THRESHOLD constant. Crossing it = if_anomaly fires. */}
+              <ReferenceLine
+                y={ML_ANOMALY_THRESHOLD}
+                stroke="#ea580c"
+                strokeDasharray="4 4"
+                label={{ value: "임계 0.077", position: "insideTopLeft", fontSize: 11, fill: "#ea580c" }}
+              />
+              {mlMarkers.map((m) => (
+                <ReferenceLine
+                  key={`ml-${m.key}`}
+                  x={m.x}
+                  stroke="#ea580c"
+                  strokeWidth={1.5}
+                  strokeDasharray="3 2"
+                  ifOverflow="hidden"
+                />
+              ))}
+              <Line type="monotone" dataKey="ml" stroke="#ea580c" dot={false} connectNulls isAnimationActive={false} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+        <p style={captionStyle}>
+          ③ ML 이상점수 · 정상: 낮게 깔림 · 이상: 급등해 임계 돌파(주황 세로선=if_anomaly 발화). ※ 이
+          신호선 healthy/열화 분포가 겹쳐 K≥3에선 약함(정직 보고)
+        </p>
+
+        <div style={{ display: "flex", gap: 16, flexWrap: "wrap", fontSize: 11, color: "#555", marginTop: 8 }}>
+          <span style={{ color: "#2563eb" }}>━ RMS value · <span style={{ color: "#a00" }}>┅ threshold min/max · │ fire</span></span>
+          <span style={{ color: "#7c3aed" }}>━ Cpk · ┅ capable/marginal · │ WE fire</span>
+          <span style={{ color: "#ea580c" }}>━ ML score · ┊ if_anomaly fire</span>
         </div>
       </Section>
 
