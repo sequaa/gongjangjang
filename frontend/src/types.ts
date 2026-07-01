@@ -52,6 +52,15 @@ export interface MlSignal {
   occurredAt: string;
 }
 
+// Bundle snapshot passed to useReplaySocket for client-side demo replay (D-01).
+export interface DemoSnapshot {
+  baseline: Baseline;
+  readings: SensorReading[];
+  alarms: Alarm[];
+  spcCpk: SpcSignal[];
+  mlScore: MlSignal[];
+}
+
 // Frozen baseline limits from GET /api/baseline (single source of truth, D-11).
 export interface Baseline {
   thresholdMin: number;

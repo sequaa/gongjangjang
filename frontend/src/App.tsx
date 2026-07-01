@@ -10,6 +10,9 @@ import {
 } from "recharts";
 import type { ReactNode } from "react";
 import { useSensorSocket } from "./hooks/useSensorSocket";
+import { useReplaySocket } from "./hooks/useReplaySocket";
+import type { DemoSnapshot } from "./types";
+import snapshot from "./demo/snapshot.json";
 import { StatusGrid } from "./components/StatusGrid";
 import { ValueTiles } from "./components/ValueTiles";
 import { AlarmPanel } from "./components/AlarmPanel";
@@ -23,9 +26,16 @@ import {
   spcWeMarkers,
 } from "./components/SignalOverlay";
 
+// VITE_DEMO_MODE is a build-time constant: Vite statically replaces it and
+// dead-code-eliminates the unused branch, so exactly one hook is compiled into
+// each bundle. The condition is therefore identical across every render, which
+// preserves the rules-of-hooks invariant (same hook call order every render).
+const DEMO = import.meta.env.VITE_DEMO_MODE === "true";
+
 export default function App() {
   const { readings, devices, alarms, spcCpk, mlScore, baseline, connected, ackResolve } =
-    useSensorSocket();
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    DEMO ? useReplaySocket(snapshot as unknown as DemoSnapshot) : useSensorSocket();
 
   // Chart a single device's series so the line stays coherent across N devices.
   const focusId = devices[0]?.deviceId;
@@ -33,12 +43,18 @@ export default function App() {
   // all three detectors are directly comparable on a single XAxis.
   const data = mergeSpcChartData(readings, spcCpk, focusId, mlScore);
 
+  // Chart window bounds (epoch ms) — used to clip alarm/WE/ML markers so
+  // out-of-window markers cannot push the numeric XAxis domain to -1e17 (D-06).
+  const windowStart = data.length > 0 ? data[0].ts : -Infinity;
+  const windowEnd = data.length > 0 ? data[data.length - 1].ts : Infinity;
+
   // Generic (non-SPC, non-ML) alarm ticks only — SPC WE and ML if_anomaly alarms
   // get distinct markers (spcWeMarkers / mlAnomalyMarkers) so each detector stays
-  // visually separable. Categorical x-axis: a non-matching time won't render.
+  // visually separable. Epoch-ms numbers clipped to the data window (D-06).
   const alarmTicks = alarms
     .filter((a) => a.deviceId === focusId && a.detector !== "spc" && a.detector !== "ml")
-    .map((a) => new Date(a.firstOccurredAt).toLocaleTimeString());
+    .map((a) => new Date(a.firstOccurredAt).getTime())
+    .filter((ts) => ts >= windowStart && ts <= windowEnd);
 
   return (
     <div style={{ fontFamily: "system-ui, sans-serif", padding: 24, maxWidth: 1000, margin: "0 auto" }}>
@@ -60,7 +76,7 @@ export default function App() {
           <ResponsiveContainer>
             <LineChart data={data}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="t" minTickGap={40} />
+              <XAxis type="number" dataKey="ts" domain={["dataMin", "dataMax"]} minTickGap={40} tickFormatter={(v) => new Date(v).toLocaleTimeString()} />
               <YAxis domain={["auto", "auto"]} />
               <Tooltip />
               {/* Frozen threshold limits (D-11①) — single source of truth from
@@ -85,19 +101,19 @@ export default function App() {
                 />
               )}
               {alarmTicks.map((x, i) => (
-                <ReferenceLine key={`alarm-${i}`} x={x} stroke="#c80" strokeDasharray="2 2" />
+                <ReferenceLine key={`alarm-${i}`} x={x} stroke="#c80" strokeDasharray="2 2" ifOverflow="hidden" />
               ))}
               {/* 03-02 SPC overlay — frozen UCL/LCL (baseline), WE-rule fire
                   markers (spc alarms), and the descending Cpk curve on a shared
                   time axis. 03-03 adds the ML score series the same way. */}
               {spcReferenceLines(baseline)}
-              {spcWeMarkers(alarms, focusId)}
+              {spcWeMarkers(alarms, focusId, windowStart, windowEnd)}
               {spcCpkAxisAndLine()}
               {/* 03-03 ML overlay — anomaly_score line on its own right axis plus
                   if_anomaly fire markers, on the SAME time axis so threshold/SPC/
                   ML are directly comparable (which detector fires first). */}
               {mlScoreAxisAndLine()}
-              {mlAnomalyMarkers(alarms, focusId)}
+              {mlAnomalyMarkers(alarms, focusId, windowStart, windowEnd)}
               {/* connectNulls: the merged axis injects cpk-only rows (value
                   undefined) between readings — bridge them so the sensor line
                   stays continuous. */}

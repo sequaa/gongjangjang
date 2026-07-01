@@ -1,0 +1,93 @@
+{
+  "detectors": {
+    "ml": {
+      "healthy_fpr": 0.01,
+      "k_consecutive_lead_time": {
+        "1": {
+          "fire_index": 398,
+          "fire_time": "2004-02-15T04:52:39",
+          "fired": true,
+          "lead_time_hours": 97.5,
+          "lead_time_seconds": 351000.0,
+          "run_start_index": 398
+        },
+        "3": {
+          "fire_index": 617,
+          "fire_time": "2004-02-16T17:22:39",
+          "fired": true,
+          "lead_time_hours": 61.0,
+          "lead_time_seconds": 219600.0,
+          "run_start_index": 615
+        },
+        "5": {
+          "fire_index": 633,
+          "fire_time": "2004-02-16T20:02:39",
+          "fired": true,
+          "lead_time_hours": 58.33,
+          "lead_time_seconds": 210000.0,
+          "run_start_index": 629
+        }
+      },
+      "threshold_rule": "healthy_p99"
+    },
+    "spc": {
+      "healthy_fpr": 0.09666666666666666,
+      "k_consecutive_lead_time": {
+        "1": {
+          "fire_index": 403,
+          "fire_time": "2004-02-15T05:42:39",
+          "fired": true,
+          "lead_time_hours": 96.67,
+          "lead_time_seconds": 348000.0,
+          "run_start_index": 403
+        },
+        "3": {
+          "fire_index": 410,
+          "fire_time": "2004-02-15T06:52:39",
+          "fired": true,
+          "lead_time_hours": 95.5,
+          "lead_time_seconds": 343800.0,
+          "run_start_index": 408
+        },
+        "5": {
+          "fire_index": 512,
+          "fire_time": "2004-02-15T23:52:39",
+          "fired": true,
+          "lead_time_hours": 78.5,
+          "lead_time_seconds": 282600.0,
+          "run_start_index": 508
+        }
+      }
+    },
+    "threshold": {
+      "healthy_fpr": 0.0,
+      "k_consecutive_lead_time": {
+        "1": {
+          "fire_index": 538,
+          "fire_time": "2004-02-16T04:12:39",
+          "fired": true,
+          "lead_time_hours": 74.17,
+          "lead_time_seconds": 267000.0,
+          "run_start_index": 538
+        },
+        "3": {
+          "fire_index": 550,
+          "fire_time": "2004-02-16T06:12:39",
+          "fired": true,
+          "lead_time_hours": 72.17,
+          "lead_time_seconds": 259800.0,
+          "run_start_index": 548
+        },
+        "5": {
+          "fire_index": 557,
+          "fire_time": "2004-02-16T07:22:39",
+          "fired": true,
+          "lead_time_hours": 71.0,
+          "lead_time_seconds": 255600.0,
+          "run_start_index": 553
+        }
+      }
+    }
+  },
+  "primary_finding": "On this RMS-dominated bearing signal, multivariate ML buys no robust earlier detection; the pre-frozen RMS threshold is the most defensible detector."
+}

@@ -89,24 +89,51 @@ export function spcReferenceLines(baseline: Baseline | null): ReactElement[] {
 }
 
 /**
+ * Pure helper — filter alarms by focusId + detector predicate, keep only those
+ * whose firstOccurredAt falls within [windowStart, windowEnd] (epoch ms), and
+ * return each as { x: epochMs, key } so callers can build ReferenceLine elements
+ * with a numeric x coordinate (D-06: avoids -1e17 breakage from string mismatches).
+ */
+export function windowMarkers(
+  alarms: Alarm[],
+  focusId: string | undefined,
+  detectorPredicate: (a: Alarm) => boolean,
+  windowStart: number,
+  windowEnd: number,
+): { x: number; key: string }[] {
+  return alarms
+    .filter((a) => a.deviceId === focusId && detectorPredicate(a))
+    .flatMap((a) => {
+      const ts = new Date(a.firstOccurredAt).getTime();
+      if (ts >= windowStart && ts <= windowEnd) {
+        return [{ x: ts, key: `${a.id ?? a.firstOccurredAt}` }];
+      }
+      return [];
+    });
+}
+
+/**
  * Western-Electric fire markers — the SPC alarms already in {@code alarms[]}
  * (detector === "spc"), drawn as solid purple verticals so they read distinctly
  * from the dashed amber generic alarm ticks. The "SPC fires earlier/richer than
  * threshold" narrative (D-11①) is exactly this visual separation.
+ *
+ * windowStart/windowEnd clip to the chart's visible ts range (D-06).
  */
 export function spcWeMarkers(
   alarms: Alarm[],
   focusId: string | undefined,
+  windowStart: number = -Infinity,
+  windowEnd: number = Infinity,
 ): ReactElement[] {
-  return alarms
-    .filter((a) => a.detector === "spc" && a.deviceId === focusId)
-    .map((a, i) => (
+  return windowMarkers(alarms, focusId, (a) => a.detector === "spc", windowStart, windowEnd)
+    .map((m) => (
       <ReferenceLine
-        key={`spc-we-${a.id ?? i}`}
-        x={new Date(a.firstOccurredAt).toLocaleTimeString()}
+        key={`spc-we-${m.key}`}
+        x={m.x}
         stroke={SPC_COLOR}
         strokeWidth={1.5}
-        ifOverflow="extendDomain"
+        ifOverflow="hidden"
       />
     ));
 }
@@ -148,21 +175,24 @@ export function spcCpkAxisAndLine(): ReactElement[] {
  * from the purple SPC WE markers and the dashed amber generic ticks. Placing all
  * three detectors' verticals on the SAME XAxis is what makes "which detector
  * fires first" visually readable (D-11①).
+ *
+ * windowStart/windowEnd clip to the chart's visible ts range (D-06).
  */
 export function mlAnomalyMarkers(
   alarms: Alarm[],
   focusId: string | undefined,
+  windowStart: number = -Infinity,
+  windowEnd: number = Infinity,
 ): ReactElement[] {
-  return alarms
-    .filter((a) => a.detector === "ml" && a.deviceId === focusId)
-    .map((a, i) => (
+  return windowMarkers(alarms, focusId, (a) => a.detector === "ml", windowStart, windowEnd)
+    .map((m) => (
       <ReferenceLine
-        key={`ml-fire-${a.id ?? i}`}
-        x={new Date(a.firstOccurredAt).toLocaleTimeString()}
+        key={`ml-fire-${m.key}`}
+        x={m.x}
         stroke={ML_COLOR}
         strokeWidth={1.5}
         strokeDasharray="1 2"
-        ifOverflow="extendDomain"
+        ifOverflow="hidden"
       />
     ));
 }
